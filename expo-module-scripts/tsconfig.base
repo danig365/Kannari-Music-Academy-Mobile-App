@@ -1,0 +1,3 @@
+{
+  "extends": "../node_modules/expo-module-scripts/tsconfig.base.json"
+}
