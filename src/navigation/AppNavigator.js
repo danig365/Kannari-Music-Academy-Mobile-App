@@ -5,8 +5,6 @@
  *   Unauthenticated → Auth screens (login/register per role)
  *   Role = student  → UserNavigator
  *   Role = teacher  → TeacherNavigator
- *   Role = school   → SchoolNavigator
- *   Role = admin    → AdminNavigator
  *   Role = parent   → ParentNavigator
  */
 
@@ -23,8 +21,6 @@ import ForgotPassword from '../components/User/ForgotPassword';
 import TeacherLogin from '../components/Teacher/TeacherLogin';
 import TeacherRegister from '../components/Teacher/TeacherRegister';
 import TeacherForgotPassword from '../components/Teacher/TeacherForgotPassword';
-import SchoolLogin from '../components/School/SchoolLogin';
-import AdminLogin from '../components/Admin/AdminLogin';
 import ParentLogin from '../components/ParentLogin';
 import Faq from '../components/Faq';
 import Policy from '../components/Policy';
@@ -61,12 +57,6 @@ const AuthNavigator = () => (
     <Stack.Screen name="TeacherRegister" component={TeacherRegister} />
     <Stack.Screen name="TeacherForgotPassword" component={TeacherForgotPassword} />
 
-    {/* School auth */}
-    <Stack.Screen name="SchoolLogin" component={SchoolLogin} />
-
-    {/* Admin auth */}
-    <Stack.Screen name="AdminLogin" component={AdminLogin} />
-
     {/* Parent auth */}
     <Stack.Screen name="ParentLogin" component={ParentLogin} />
     <Stack.Screen name="ParentalConsent" component={ParentalConsent} />
@@ -86,18 +76,15 @@ const AppNavigator = () => {
       // Check each role's login status — mirrors localStorage checks in Main.jsx
       const studentLoginStatus = await AsyncStorage.getItem('studentLoginStatus');
       const teacherLoginStatus = await AsyncStorage.getItem('teacherLoginStatus');
-      const schoolLoginStatus = await AsyncStorage.getItem('schoolLoginStatus');
-      const adminLoginStatus = await AsyncStorage.getItem('adminLoginStatus');
       const parentLoginStatus = await AsyncStorage.getItem('parentLoginStatus');
+
+      // Admin is not supported in this mobile app.
+      await AsyncStorage.removeItem('adminLoginStatus');
 
       if (studentLoginStatus === 'true') {
         setRole('student');
       } else if (teacherLoginStatus === 'true') {
         setRole('teacher');
-      } else if (schoolLoginStatus === 'true') {
-        setRole('school');
-      } else if (adminLoginStatus === 'true') {
-        setRole('admin');
       } else if (parentLoginStatus === 'true') {
         setRole('parent');
       } else {
@@ -130,12 +117,6 @@ const AppNavigator = () => {
       )}
       {role === 'teacher' && (
         <Stack.Screen name="TeacherApp" getComponent={() => require('./TeacherNavigator').default} />
-      )}
-      {role === 'school' && (
-        <Stack.Screen name="SchoolApp" getComponent={() => require('./SchoolNavigator').default} />
-      )}
-      {role === 'admin' && (
-        <Stack.Screen name="AdminApp" getComponent={() => require('./AdminNavigator').default} />
       )}
       {role === 'parent' && (
         <Stack.Screen name="ParentApp" getComponent={() => require('./ParentNavigator').default} />

@@ -104,19 +104,10 @@ const TeacherSidebar = ({ isOpen = false, setIsOpen = null, isMobile = false, on
     { key: 'overview', label: 'Overview', icon: 'speedometer2', path: '/teacher/overview', altPath: '/teacher/dashboard' },
     { key: 'students', label: 'Students', icon: 'people', path: '/teacher/students' },
     { key: 'course', label: 'Course Management', icon: 'book', path: '/teacher/course-management', startsWith: '/teacher/course-management/' },
-    { key: 'sessions', label: 'Sessions', icon: 'camera-video', path: '/teacher/sessions' },
     { key: 'audio', label: 'Audio Messages', icon: 'mic', path: '/teacher/audio-messages' },
     { key: 'text', label: 'Text Messages', icon: 'chat-dots', path: '/teacher/text-messages' },
-    { key: 'assign', label: 'Create Assignments', icon: 'journal-check', path: '/teacher/create-assignments' },
-    { key: 'office', label: 'Office Hours', icon: 'clock-history', path: '/teacher/office-hours' },
     { key: 'reviews', label: 'Assignment Reviews', icon: 'check-circle', path: '/teacher/assignment-reviews' },
-    { key: 'progress', label: 'Progress', icon: 'bar-chart-line', path: '/teacher/progress' },
     { key: 'profile', label: 'Profile Settings', icon: 'person-circle', path: '/teacher/profile-setting' },
-  ]
-
-  const secondaryItems = [
-    { key: 'community', label: 'Teacher Lounge', icon: 'chat-square-text', path: '/teacher/community', accent: 'purple', tag: 'CHAT' },
-    { key: 'games', label: 'Game Performance', icon: 'controller', path: '/teacher/games-performance', accent: 'green' },
   ]
 
   return (
@@ -144,25 +135,6 @@ const TeacherSidebar = ({ isOpen = false, setIsOpen = null, isMobile = false, on
             >
               <Bootstrap name={item.icon} size={16} color={active ? '#fff' : '#8b92a7'} />
               <Text style={[styles.navLabel, active ? styles.navTextActive : null]}>{item.label}</Text>
-            </TouchableOpacity>
-          )
-        })}
-
-        <View style={styles.divider} />
-
-        {secondaryItems.map((item) => {
-          const active = isActive(item.path)
-          const activeStyle =
-            item.accent === 'purple' ? styles.navItemPurpleActive : item.accent === 'green' ? styles.navItemGreenActive : null
-          return (
-            <TouchableOpacity
-              key={item.key}
-              onPress={() => handleNavClick(item.path)}
-              style={[styles.navItem, active ? activeStyle : null]}
-            >
-              <Bootstrap name={item.icon} size={16} color={active ? '#fff' : '#8b92a7'} />
-              <Text style={[styles.navLabel, active ? styles.navTextActive : null]}>{item.label}</Text>
-              {item.tag ? <Text style={styles.chatTag}>{item.tag}</Text> : null}
             </TouchableOpacity>
           )
         })}

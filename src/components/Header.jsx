@@ -15,8 +15,6 @@ const Header = () => {
   const navigation = useNavigation()
   const [teacherLoginStatus, setTeacherLoginStatus] = useState(false)
   const [studentLoginStatus, setStudentLoginStatus] = useState(false)
-  const [adminLoginStatus, setAdminLoginStatus] = useState(false)
-  const [schoolLoginStatus, setSchoolLoginStatus] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [expandedDropdown, setExpandedDropdown] = useState(null)
 
@@ -28,13 +26,9 @@ const Header = () => {
     try {
       const teacherStatus = await AsyncStorage.getItem('teacherLoginStatus')
       const studentStatus = await AsyncStorage.getItem('studentLoginStatus')
-      const adminStatus = await AsyncStorage.getItem('adminLoginStatus')
-      const schoolStatus = await AsyncStorage.getItem('schoolLoginStatus')
 
       setTeacherLoginStatus(teacherStatus === 'true')
       setStudentLoginStatus(studentStatus === 'true')
-      setAdminLoginStatus(adminStatus === 'true')
-      setSchoolLoginStatus(schoolStatus === 'true')
     } catch (error) {
       console.log(error)
     }
@@ -191,96 +185,6 @@ const Header = () => {
                     <TouchableOpacity
                       style={[styles.dropdownItem, styles.dropdownLogout]}
                       onPress={() => handleNavigate('StudentLogout')}
-                    >
-                      <Bootstrap name="box-arrow-right" size={18} color="#6b7280" style={styles.dropdownItemIcon} />
-                      <Text style={styles.dropdownText}>Logout</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-            )}
-          </View>
-
-          {/* Admin Dropdown */}
-          <View>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => toggleDropdown('admin')}
-            >
-              <Bootstrap name="lock" size={19} color="#4b5563" style={styles.navIcon} />
-              <Text style={styles.navLinkText}>Admin</Text>
-              <Text style={styles.dropdownIcon}>
-                {expandedDropdown === 'admin' ? '▼' : '▶'}
-              </Text>
-            </TouchableOpacity>
-            {expandedDropdown === 'admin' && (
-              <View style={styles.dropdownContent}>
-                {!adminLoginStatus && (
-                  <TouchableOpacity
-                    style={styles.dropdownItem}
-                    onPress={() => handleNavigate('AdminLogin')}
-                  >
-                    <Bootstrap name="box-arrow-right" size={18} color="#6b7280" style={styles.dropdownItemIcon} />
-                    <Text style={styles.dropdownText}>Login</Text>
-                  </TouchableOpacity>
-                )}
-                {adminLoginStatus && (
-                  <>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => handleNavigate('AdminDashboard')}
-                    >
-                      <Bootstrap name="bar-chart-line" size={18} color="#6b7280" style={styles.dropdownItemIcon} />
-                      <Text style={styles.dropdownText}>Dashboard</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.dropdownItem, styles.dropdownLogout]}
-                      onPress={() => handleNavigate('AdminLogout')}
-                    >
-                      <Bootstrap name="box-arrow-right" size={18} color="#6b7280" style={styles.dropdownItemIcon} />
-                      <Text style={styles.dropdownText}>Logout</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-            )}
-          </View>
-
-          {/* School Dropdown */}
-          <View>
-            <TouchableOpacity
-              style={styles.dropdownButton}
-              onPress={() => toggleDropdown('school')}
-            >
-              <Bootstrap name="house" size={19} color="#4b5563" style={styles.navIcon} />
-              <Text style={styles.navLinkText}>School</Text>
-              <Text style={styles.dropdownIcon}>
-                {expandedDropdown === 'school' ? '▼' : '▶'}
-              </Text>
-            </TouchableOpacity>
-            {expandedDropdown === 'school' && (
-              <View style={styles.dropdownContent}>
-                {!schoolLoginStatus && (
-                  <TouchableOpacity
-                    style={styles.dropdownItem}
-                    onPress={() => handleNavigate('SchoolLogin')}
-                  >
-                    <Bootstrap name="box-arrow-right" size={18} color="#6b7280" style={styles.dropdownItemIcon} />
-                    <Text style={styles.dropdownText}>Login</Text>
-                  </TouchableOpacity>
-                )}
-                {schoolLoginStatus && (
-                  <>
-                    <TouchableOpacity
-                      style={styles.dropdownItem}
-                      onPress={() => handleNavigate('SchoolDashboard')}
-                    >
-                      <Bootstrap name="bar-chart-line" size={18} color="#6b7280" style={styles.dropdownItemIcon} />
-                      <Text style={styles.dropdownText}>Dashboard</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.dropdownItem, styles.dropdownLogout]}
-                      onPress={() => handleNavigate('SchoolLogout')}
                     >
                       <Bootstrap name="box-arrow-right" size={18} color="#6b7280" style={styles.dropdownItemIcon} />
                       <Text style={styles.dropdownText}>Logout</Text>
