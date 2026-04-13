@@ -12,9 +12,21 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kannarimusicacademy.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Kannari Music Academy needs microphone access to record audio messages for your teacher.",
+        "NSPhotoLibraryUsageDescription": "Kannari Music Academy needs photo library access to update your profile picture."
+      }
     },
     "android": {
+      "package": "com.kannarimusicacademy.app",
+      "versionCode": 1,
+      "permissions": [
+        "RECORD_AUDIO",
+        "READ_MEDIA_IMAGES"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
