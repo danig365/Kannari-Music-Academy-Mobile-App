@@ -101,7 +101,7 @@ const AddCourses = () => {
       };
 
   return (
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
             <View style={styles.card}>
                 <Text style={styles.cardHeader}>➕ Add Course</Text>
                 <View style={styles.cardBody}>

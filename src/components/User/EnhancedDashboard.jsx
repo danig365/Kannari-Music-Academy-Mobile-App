@@ -15,6 +15,23 @@ const baseUrl = API_BASE_URL;
 
 const EnhancedDashboard = () => {
     const navigation = useNavigation();
+    const navigateToStudentLogin = () => {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+            parentNav.navigate('Auth', { screen: 'StudentLogin' });
+            return;
+        }
+        navigation.navigate('StudentLogin');
+    };
+
+    const openMyCourses = () => {
+        navigation.navigate('MyCourses');
+    };
+
+    const openCourseDetail = (courseId) => {
+        if (!courseId) return;
+        navigation.navigate('CourseDetail', { course_id: courseId });
+    };
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [studentId, setStudentId] = useState(null);
@@ -39,7 +56,7 @@ const EnhancedDashboard = () => {
         if (studentLoginStatus === null) return;
 
         if (studentLoginStatus !== 'true') {
-            navigation.navigate('/student/login');
+            navigateToStudentLogin();
         } else if (studentId) {
             fetchDashboardData();
         } else {
@@ -171,7 +188,7 @@ const EnhancedDashboard = () => {
                                 <Text style={styles.statNumber}>{dashboardData?.enrolled_courses || 0}</Text>
                                 <Text style={styles.statLabel}>Total Courses</Text>
                             </View>
-                            <TouchableOpacity onPress={() => navigation.navigate('/student/my-courses')} style={styles.statLink}>
+                            <TouchableOpacity onPress={openMyCourses} style={styles.statLink}>
                                 <Bootstrap name="arrow-right-circle-fill" size={18} color="#2563eb" />
                             </TouchableOpacity>
                         </View>
@@ -239,7 +256,7 @@ const EnhancedDashboard = () => {
                                             <TouchableOpacity
                                                 key={index}
                                                 style={styles.courseProgressCard}
-                                                onPress={() => navigation.navigate(`/detail/${course.id}`)}
+                                                onPress={() => openCourseDetail(course.id)}
                                             >
                                                 <View style={styles.courseImgWrapper}>
                                                     {course.featured_img ? (

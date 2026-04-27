@@ -147,13 +147,15 @@ const styles = StyleSheet.create({
     },
     mainContentDesktop: {
         marginLeft: 0,
-        paddingVertical: 24,
-        paddingHorizontal: 24,
+        paddingTop: 0,
+        paddingBottom: 24,
+        paddingHorizontal: 0,
     },
     mainContentMobile: {
         marginTop: 60,
-        paddingVertical: 16,
-        paddingHorizontal: 16,
+        paddingTop: 0,
+        paddingBottom: 16,
+        paddingHorizontal: 0,
     },
     mobileHeader: {
         position: 'absolute',

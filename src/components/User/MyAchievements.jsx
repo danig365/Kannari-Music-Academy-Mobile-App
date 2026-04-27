@@ -20,6 +20,14 @@ const baseUrl = API_BASE_URL;
 
 const MyAchievements = () => {
     const navigation = useNavigation();
+    const navigateToStudentLogin = () => {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+            parentNav.navigate('Auth', { screen: 'StudentLogin' });
+            return;
+        }
+        navigation.navigate('StudentLogin');
+    };
     const [studentId, setStudentId] = useState(null);
     const [studentLoginStatus, setStudentLoginStatus] = useState(null);
     const [achievements, setAchievements] = useState([]);
@@ -46,7 +54,7 @@ const MyAchievements = () => {
     useEffect(() => {
         if (studentLoginStatus === null) return;
         if (studentLoginStatus !== 'true') {
-            navigation.navigate('/student/login');
+            navigateToStudentLogin();
         }
     }, [studentLoginStatus]);
 

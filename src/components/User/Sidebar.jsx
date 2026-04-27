@@ -7,6 +7,7 @@ import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet, Alert, Tex
 import { useNavigation, useNavigationState } from '@react-navigation/native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Dimensions } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Bootstrap } from '../shared/BootstrapIcon'
 import { API_BASE_URL } from '../../config';
 import { getStudentSonaraCoins } from '../../services/gameService';
@@ -14,6 +15,8 @@ import { getStudentSonaraCoins } from '../../services/gameService';
 const Sidebar = ({ isOpen: externalIsOpen, setIsOpen: externalSetIsOpen, isMobile: externalIsMobile }) => {
   const navigation = useNavigation();
   const currentRouteName = useNavigationState((state) => state?.routes?.[state.index]?.name || '');
+  const insets = useSafeAreaInsets();
+  const footerBottomInset = Math.max(insets.bottom, 10);
 
   // Self-managed mobile state when parent doesn't provide props
   const [internalIsMobile, setInternalIsMobile] = useState(Dimensions.get('window').width < 768);
@@ -307,7 +310,7 @@ const Sidebar = ({ isOpen: externalIsOpen, setIsOpen: externalSetIsOpen, isMobil
         <View style={styles.divider} />
       </ScrollView>
 
-      <View style={styles.bottomSection}>
+      <View style={[styles.bottomSection, { paddingBottom: 20 + footerBottomInset }]}>
         <View style={styles.userProfile}>
           {studentData.profile_img ? (
             <Image source={{ uri: studentData.profile_img }} style={styles.profileImage} />
@@ -369,8 +372,11 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   headerSection: {
+    paddingTop: 12,
     paddingBottom: 14,
     paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -404,18 +410,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   navContent: {
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: 10,
+    paddingBottom: 18,
   },
   navLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 12,
+    minHeight: 52,
+    paddingVertical: 11,
     paddingHorizontal: 16,
     borderLeftWidth: 3,
     borderLeftColor: 'transparent',
-    marginBottom: 4,
+    marginBottom: 5,
+    borderRadius: 10,
   },
   navLinkRelative: {
     position: 'relative',
@@ -428,7 +436,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   navText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '500',
     color: '#94a3b8',
   },
@@ -529,11 +537,12 @@ const styles = StyleSheet.create({
     color: '#fbbf24',
   },
   bottomSection: {
-    paddingTop: 12,
+    paddingTop: 14,
     paddingHorizontal: 12,
     paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: '#1e293b',
+    backgroundColor: '#0e1628',
   },
   userProfile: {
     flexDirection: 'row',
@@ -541,8 +550,10 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     backgroundColor: '#1e293b',
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.14)',
   },
   profileImage: {
     width: 40,
@@ -570,8 +581,8 @@ const styles = StyleSheet.create({
   },
   userName: {
     color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     marginBottom: 4,
   },
   userEmail: {
@@ -580,7 +591,7 @@ const styles = StyleSheet.create({
   },
   bottomButtonsRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
   },
   bottomButton: {
     flex: 1,
@@ -588,15 +599,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 10,
+    minHeight: 52,
+    paddingVertical: 12,
     paddingHorizontal: 12,
-    borderRadius: 6,
+    borderRadius: 10,
     backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.15)',
   },
   bottomButtonText: {
     color: '#94a3b8',
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
   },
   hiddenLink: {
     display: 'none',

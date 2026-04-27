@@ -26,6 +26,14 @@ const RELATIONSHIPS = ['mother', 'father', 'guardian', 'other'];
 
 const ProfileSetting = () => {
     const navigation = useNavigation();
+    const navigateToStudentLogin = () => {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+            parentNav.navigate('Auth', { screen: 'StudentLogin' });
+            return;
+        }
+        navigation.navigate('StudentLogin');
+    };
 
     const [studentId, setStudentId] = useState(null);
     const [studentLoginStatus, setStudentLoginStatus] = useState(null);
@@ -74,7 +82,7 @@ const ProfileSetting = () => {
     useEffect(() => {
         if (studentLoginStatus === null) return;
         if (studentLoginStatus !== 'true') {
-            navigation.navigate('/student/login');
+            navigateToStudentLogin();
         }
     }, [studentLoginStatus]);
 

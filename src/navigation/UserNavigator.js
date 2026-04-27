@@ -56,7 +56,7 @@ import StudyStudentMaterial from '../components/User/StudyStudentMaterial';
 // Games
 import StudentGamesHub from '../components/User/StudentGamesHub';
 import NoteNinjaGame from '../components/User/NoteNinjaGame';
-import RhythmRushGame from '../components/User/RhythmRushGame';
+// import RhythmRushGame from '../components/User/RhythmRushGame';
 import MusicChallengeGame from '../components/User/MusicChallengeGame';
 
 // Recent Bookings
@@ -96,7 +96,7 @@ const ChangePasswordScreen = withUserLayout(ChangePassword);
 const UserLogoutScreen = withUserLayout(UserLogout);
 const StudentGamesHubScreen = withUserLayout(StudentGamesHub);
 const NoteNinjaGameScreen = withUserLayout(NoteNinjaGame);
-const RhythmRushGameScreen = withUserLayout(RhythmRushGame);
+// const RhythmRushGameScreen = withUserLayout(RhythmRushGame);
 const MusicChallengeGameScreen = withUserLayout(MusicChallengeGame);
 const RecentBookingsScreen = withUserLayout(RecentBookings);
 
@@ -151,7 +151,7 @@ const UserNavigator = () => {
       {/* Games */}
       <Stack.Screen name="StudentGamesHub" component={StudentGamesHubScreen} />
       <Stack.Screen name="NoteNinjaGame" component={NoteNinjaGameScreen} />
-      <Stack.Screen name="RhythmRushGame" component={RhythmRushGameScreen} />
+      {/* <Stack.Screen name="RhythmRushGame" component={RhythmRushGameScreen} /> */}
       <Stack.Screen name="MusicChallengeGame" component={MusicChallengeGameScreen} />
 
       {/* Bookings */}

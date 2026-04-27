@@ -40,7 +40,7 @@ const MyUsers = () => {
             },[teacherId]);
 
   return (
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
             <View style={styles.card}>
                 <View style={styles.cardHeaderRow}>
                     <Text style={styles.cardHeader}>👥 All Enrolled List</Text>

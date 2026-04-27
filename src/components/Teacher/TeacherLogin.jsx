@@ -9,10 +9,13 @@ import {
   Alert,
   ActivityIndicator,
   useWindowDimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native'
 import axios from 'axios'
 import { useNavigation } from '@react-navigation/native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../../context/AuthContext'
 import Header from '../Header'
 
@@ -25,6 +28,7 @@ const TeacherLogin = () => {
   const navigation = useNavigation()
   const { setRole } = useAuth()
   const { width } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
 
   const [teacherLoginStatus, setTeacherLoginStatus] = useState(null)
   const [teacherLoginData, setTeacherLoginData] = useState({
@@ -115,9 +119,19 @@ const TeacherLogin = () => {
     <View style={styles.screen}>
       <Header />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={[styles.container, !isTablet && styles.containerMobile]}>
-          <View style={styles.contentWrap}>
+      <KeyboardAvoidingView
+        style={styles.keyboardWrap}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 72 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 28 + insets.bottom }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <View style={[styles.container, !isTablet && styles.containerMobile]}>
+            <View style={styles.contentWrap}>
             <View style={[styles.headerSection, !isTablet && styles.headerSectionMobile]}>
               <View style={styles.badge}>
                 <Text style={styles.badgeIcon}>📘</Text>
@@ -209,9 +223,10 @@ const TeacherLogin = () => {
                 </View>
               </View>
             </View>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   )
 }
@@ -220,6 +235,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#f5f7fa',
+  },
+  keyboardWrap: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,

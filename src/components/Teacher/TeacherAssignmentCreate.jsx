@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform, useWindowDimensions } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Picker } from '@react-native-picker/picker'
 import axios from 'axios';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { API_BASE_URL } from '../../config';
 
 const baseUrl = API_BASE_URL;
@@ -28,6 +29,9 @@ const OPTION_LETTERS = ['a', 'b', 'c', 'd'];
 
 const TeacherAssignmentCreate = () => {
   const [teacherId, setTeacherId] = useState(null)
+  const { width } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
+  const isCompact = width < 768
 
   const [assignments, setAssignments] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -285,7 +289,19 @@ const TeacherAssignmentCreate = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.keyboardWrap}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 72 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <View style={[styles.container, isCompact ? styles.containerCompact : styles.containerWide]}>
+          <View style={styles.contentShell}>
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.headerTitle}>📚 Assignments</Text>
@@ -536,19 +552,43 @@ const TeacherAssignmentCreate = () => {
           })}
         </View>
       )}
-    </ScrollView>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    width: '100%',
+  },
+  containerWide: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+  containerCompact: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  contentShell: {
+    width: '100%',
+    maxWidth: 920,
+    alignSelf: 'center',
+  },
+  keyboardWrap: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    backgroundColor: '#f8fafc',
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     flexWrap: 'wrap',
     gap: 12,
   },
@@ -583,9 +623,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 12,
-    padding: 24,
-    marginBottom: 24,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 2,
   },
   formTitle: {
     fontWeight: '600',
@@ -642,9 +687,9 @@ const styles = StyleSheet.create({
   },
   mcWrap: {
     marginTop: 20,
-    padding: 18,
+    padding: 16,
     backgroundColor: '#f8fafc',
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
@@ -683,7 +728,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 16,
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
@@ -770,6 +815,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 10,
+    flexWrap: 'wrap',
   },
   cancelBtn: {
     paddingVertical: 10,
@@ -830,7 +876,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
     borderLeftWidth: 4,
   },

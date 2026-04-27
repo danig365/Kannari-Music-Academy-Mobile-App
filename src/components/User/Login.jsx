@@ -2,9 +2,10 @@ import React from 'react'
 import { useEffect } from 'react'
 import { useState } from 'react'
 import axios from 'axios'
-import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, ActivityIndicator, useWindowDimensions } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, ActivityIndicator, useWindowDimensions, KeyboardAvoidingView, Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useNavigation } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../../context/AuthContext'
 import { API_BASE, ENDPOINTS } from '../../api/endpoints'
 import { validateLoginForm, FieldError } from '../../utils/formValidation'
@@ -16,6 +17,7 @@ const Login = () => {
     const navigation = useNavigation()
     const { setRole } = useAuth()
     const { width } = useWindowDimensions()
+    const insets = useSafeAreaInsets()
     const [studentLoginStatus, setStudentLoginStatus] = useState(null)
 
     const isTablet = width >= 768
@@ -89,9 +91,19 @@ const Login = () => {
     <View style={styles.screen}>
       <Header />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.container, !isTablet && styles.containerMobile]}>
-          <View style={styles.contentWrap}>
+      <KeyboardAvoidingView
+        style={styles.keyboardWrap}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 72 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 28 + insets.bottom }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.container, !isTablet && styles.containerMobile]}>
+            <View style={styles.contentWrap}>
             <View style={styles.headerSection}>
               <View style={styles.badge}>
                 <Text style={styles.badgeIcon}>👤</Text>
@@ -190,9 +202,10 @@ const Login = () => {
                 </View>
               </View>
             </View>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   )
 }
@@ -201,6 +214,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  keyboardWrap: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,

@@ -45,6 +45,14 @@ const MC_OPTIONS = [
 
 const StudentAssignments = () => {
   const navigation = useNavigation();
+  const navigateToStudentLogin = () => {
+    const parentNav = navigation.getParent();
+    if (parentNav) {
+      parentNav.navigate('Auth', { screen: 'StudentLogin' });
+      return;
+    }
+    navigation.navigate('StudentLogin');
+  };
   const [studentId, setStudentId] = useState(null);
   const [studentLoginStatus, setStudentLoginStatus] = useState(null);
 
@@ -75,7 +83,7 @@ const StudentAssignments = () => {
   useEffect(() => {
     if (studentLoginStatus === null) return;
     if (studentLoginStatus !== 'true') {
-      navigation.navigate('/student/login');
+      navigateToStudentLogin();
     }
   }, [studentLoginStatus]);
 

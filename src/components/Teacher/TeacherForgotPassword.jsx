@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
-import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { API_BASE, ENDPOINTS } from '../../api/endpoints'
 
 const TeacherForgotPassword = () => {
   const navigation = useNavigation()
   const route = useRoute()
   const token = route?.params?.token || null
+  const insets = useSafeAreaInsets()
 
   const [email, setEmail] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -70,9 +72,19 @@ const TeacherForgotPassword = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContent}>
-      <View style={styles.container}>
-        <View style={styles.card}>
+    <KeyboardAvoidingView
+      style={styles.keyboardWrap}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 16 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 28 + insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.container}>
+          <View style={styles.card}>
           <TouchableOpacity onPress={() => navigation.navigate('TeacherLogin')}>
             <Text style={styles.backLink}>← Back to login</Text>
           </TouchableOpacity>
@@ -125,15 +137,19 @@ const TeacherForgotPassword = () => {
               </TouchableOpacity>
             </>
           )}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   )
 }
 
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
+  },
+  keyboardWrap: {
+    flex: 1,
   },
   container: {
     minHeight: '100%',

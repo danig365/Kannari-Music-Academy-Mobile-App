@@ -6,6 +6,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
@@ -36,6 +37,8 @@ const AdminSidebar = ({ isOpen = false, setIsOpen = null, isMobile = false, onNa
     const navigation = useNavigation();
     const { setRole } = useAuth();
     const currentRouteName = useNavigationState((state) => state?.routes?.[state.index]?.name || '');
+    const insets = useSafeAreaInsets();
+    const footerBottomInset = Math.max(insets.bottom, 10);
 
     const [adminRole, setAdminRole] = useState('');
     const [adminName, setAdminName] = useState('');
@@ -114,7 +117,7 @@ const AdminSidebar = ({ isOpen = false, setIsOpen = null, isMobile = false, onNa
                 })}
             </ScrollView>
 
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: 16 + footerBottomInset }]}>
                 <View style={styles.userRow}>
                     <View style={styles.avatar}>
                         <Text style={styles.avatarText}>{adminName ? adminName.substring(0, 2).toUpperCase() : 'AD'}</Text>

@@ -10,12 +10,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { API_BASE_URL } from '../../config'
 import { Bootstrap } from '../shared/BootstrapIcon'
 
 const TeacherSidebar = ({ isOpen = false, setIsOpen = null, isMobile = false, onNavigate = null }) => {
   const navigation = useNavigation()
   const route = useRoute()
+  const insets = useSafeAreaInsets()
+  const footerBottomInset = Math.max(insets.bottom, 10)
 
   const [teacherName, setTeacherName] = useState(null)
   const [teacherEmail, setTeacherEmail] = useState(null)
@@ -106,6 +109,7 @@ const TeacherSidebar = ({ isOpen = false, setIsOpen = null, isMobile = false, on
     { key: 'course', label: 'Course Management', icon: 'book', path: '/teacher/course-management', startsWith: '/teacher/course-management/' },
     { key: 'audio', label: 'Audio Messages', icon: 'mic', path: '/teacher/audio-messages' },
     { key: 'text', label: 'Text Messages', icon: 'chat-dots', path: '/teacher/text-messages' },
+    // { key: 'assignments', label: 'Create Assignments', icon: 'clipboard-plus', path: '/teacher/create-assignments' },
     { key: 'reviews', label: 'Assignment Reviews', icon: 'check-circle', path: '/teacher/assignment-reviews' },
     { key: 'profile', label: 'Profile Settings', icon: 'person-circle', path: '/teacher/profile-setting' },
   ]
@@ -140,7 +144,7 @@ const TeacherSidebar = ({ isOpen = false, setIsOpen = null, isMobile = false, on
         })}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: 16 + footerBottomInset }]}>
         <View style={styles.teacherRow}>
           {teacherProfileImg ? (
             <Image source={{ uri: teacherProfileImg }} style={styles.avatarImage} />

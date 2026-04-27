@@ -146,7 +146,7 @@ const TeacherGamesPerformance = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.tgpContainer}>
+    <ScrollView contentContainerStyle={styles.tgpContainer} showsVerticalScrollIndicator={false}>
       <View style={styles.tgpHeader}>
         <View>
           <Text style={styles.headerTitle}>🎮 Student <Text style={styles.headerTitleAccent}>Game Performance</Text></Text>

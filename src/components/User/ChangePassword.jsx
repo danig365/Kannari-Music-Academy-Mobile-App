@@ -10,6 +10,18 @@ const baseUrl = API_BASE_URL;
 
 const ChangePassword = () => {
   const navigation = useNavigation();
+  const navigateToStudentLogin = () => {
+    const parentNav = navigation.getParent();
+    if (parentNav) {
+      parentNav.navigate('Auth', { screen: 'StudentLogin' });
+      return;
+    }
+    navigation.navigate('StudentLogin');
+  };
+
+  const navigateToLogout = () => {
+    navigation.navigate('UserLogout');
+  };
   const [studentId, setStudentId] = useState(null);
   const [studentLoginStatus, setStudentLoginStatus] = useState(null);
   const [password, setPassword] = useState('');
@@ -32,7 +44,7 @@ const ChangePassword = () => {
   useEffect(() => {
     if (studentLoginStatus === null) return;
     if (studentLoginStatus !== 'true') {
-      navigation.navigate('/student/login');
+      navigateToStudentLogin();
     }
   }, [studentLoginStatus]);
 
@@ -56,7 +68,7 @@ const ChangePassword = () => {
             text: 'OK',
             onPress: async () => {
               await AsyncStorage.removeItem('studentLoginStatus');
-              navigation.navigate('/student/logout');
+                    navigateToLogout();
             },
           },
         ]);

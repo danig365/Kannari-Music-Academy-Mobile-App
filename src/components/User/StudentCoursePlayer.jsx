@@ -4,6 +4,7 @@ import LoadingSpinner from '../shared/LoadingSpinner';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, Modal, Linking } from 'react-native';
+import { Video, ResizeMode } from 'expo-av';
 import { Bootstrap } from '../shared/BootstrapIcon';
 import { checkLessonAccess, recordLessonAccess, getStudentSubscription, formatAccessLevel } from '../../services/subscriptionService';
 
@@ -32,6 +33,28 @@ const StudentCoursePlayer = () => {
     const [lessonAccess, setLessonAccess] = useState({ can_access: true, checking: true });
     const [subscriptionInfo, setSubscriptionInfo] = useState(null);
     const [showYouTubeModal, setShowYouTubeModal] = useState(false);
+    const [showVideoModal, setShowVideoModal] = useState(false);
+    const [activeVideoUrl, setActiveVideoUrl] = useState(null);
+    const [activeVideoTitle, setActiveVideoTitle] = useState('Lesson Video');
+
+        const navigateToStudentLogin = () => {
+            const parentNav = navigation.getParent();
+            if (parentNav) {
+                parentNav.navigate('Auth', { screen: 'StudentLogin' });
+                return;
+            }
+            navigation.navigate('StudentLogin');
+        };
+
+        const navigateToCourseDetail = () => {
+            if (!course_id) return;
+            navigation.navigate('CourseDetail', { course_id });
+        };
+
+        const navigateToLesson = (targetLessonId) => {
+            if (!course_id || !targetLessonId) return;
+            navigation.navigate('StudentCoursePlayer', { course_id, lesson_id: targetLessonId });
+        };
 
     const milestoneMessages = {
         25: { emoji: '🚀', title: 'Great Start!', text: "You're 25% through! Keep up the momentum!" },
@@ -60,7 +83,7 @@ const StudentCoursePlayer = () => {
         const initializePage = async () => {
             if (studentLoginStatus !== 'true' || !studentId) {
                 Alert.alert('Login Required', 'Please login to access course content', [
-                  { text: 'OK', onPress: () => navigation.navigate('/student/login') }
+                                    { text: 'OK', onPress: navigateToStudentLogin }
                 ]);
                 return;
             }
@@ -74,7 +97,7 @@ const StudentCoursePlayer = () => {
 
                 if (!response.data.is_enrolled) {
                     Alert.alert('Access Denied', 'You must enroll in this course to access the lessons', [
-                      { text: 'OK', onPress: () => navigation.navigate(`/detail/${course_id}`) }
+                                            { text: 'OK', onPress: navigateToCourseDetail }
                     ]);
                     setLoading(false);
                     return;
@@ -83,7 +106,7 @@ const StudentCoursePlayer = () => {
                 setPageData(response.data);
 
                 if (!lesson_id && response.data.current_lesson) {
-                    navigation.navigate('/student/learn', {
+                                        navigation.navigate('StudentCoursePlayer', {
                       course_id,
                       lesson_id: response.data.current_lesson.id,
                     });
@@ -95,7 +118,7 @@ const StudentCoursePlayer = () => {
 
                 if (err.response?.status === 403) {
                     Alert.alert('Access Denied', errorMsg, [
-                      { text: 'OK', onPress: () => navigation.navigate(`/detail/${course_id}`) }
+                                            { text: 'OK', onPress: navigateToCourseDetail }
                     ]);
                 } else {
                     Alert.alert('Error Loading Content', errorMsg);
@@ -229,7 +252,7 @@ const StudentCoursePlayer = () => {
     const handlePrevious = () => {
         if (navData.previous) {
             setShowYouTubeModal(false);
-            navigation.navigate('/student/learn', { course_id, lesson_id: navData.previous.id });
+            navigateToLesson(navData.previous.id);
         }
     };
 
@@ -240,7 +263,7 @@ const StudentCoursePlayer = () => {
                 return;
             }
             setShowYouTubeModal(false);
-            navigation.navigate('/student/learn', { course_id, lesson_id: navData.next.id });
+            navigateToLesson(navData.next.id);
         }
     };
 
@@ -308,6 +331,42 @@ const StudentCoursePlayer = () => {
       }
     };
 
+        const isVideoFileUrl = (url = '') => {
+            return /\.(mp4|m4v|mov|webm)(\?.*)?$/i.test(url);
+        };
+
+        const openLessonContent = () => {
+                if (!currentLesson) return;
+
+                const { file, youtube_url, title, content_type } = currentLesson;
+                let fileUrl = file;
+                if (file && !file.startsWith('http')) {
+                        fileUrl = `${mediaUrl}${file.startsWith('/') ? '' : '/'}${file}`;
+                }
+
+                const youtubeUrl = getYouTubeEmbedUrl(youtube_url);
+                const isVideoLesson = content_type === 'video' || (fileUrl && isVideoFileUrl(fileUrl));
+
+                if (isVideoLesson && fileUrl) {
+                        setActiveVideoUrl(fileUrl);
+                        setActiveVideoTitle(title || 'Lesson Video');
+                        setShowVideoModal(true);
+                        return;
+                }
+
+                if (youtubeUrl) {
+                        setShowYouTubeModal(true);
+                        return;
+                }
+
+                if (fileUrl) {
+                        openContentUrl(fileUrl);
+                        return;
+                }
+
+                Alert.alert('Content Unavailable', 'This lesson does not have an available file to open.');
+        };
+
     const renderContent = () => {
         if (!currentLesson) {
             return (
@@ -329,7 +388,7 @@ const StudentCoursePlayer = () => {
                         style={styles.primaryBtn}
                         onPress={() => {
                             if (navData.previous) {
-                                navigation.navigate('/student/learn', { course_id, lesson_id: navData.previous.id });
+                                navigateToLesson(navData.previous.id);
                             }
                         }}
                     >
@@ -347,6 +406,8 @@ const StudentCoursePlayer = () => {
             fileUrl = `${mediaUrl}${file.startsWith('/') ? '' : '/'}${file}`;
         }
 
+        const isVideoLesson = content_type === 'video' || (fileUrl && isVideoFileUrl(fileUrl));
+
         if (!fileUrl && !youtubeUrl) {
             return (
                 <View style={styles.errorStateContainer}>
@@ -361,10 +422,10 @@ const StudentCoursePlayer = () => {
             <View style={styles.contentPlayerWrapper}>
               <Text style={styles.contentLabel}>{title}</Text>
               <Text style={styles.contentType}>Type: {content_type}</Text>
-              {fileUrl ? (
-                <TouchableOpacity style={styles.openBtn} onPress={() => openContentUrl(fileUrl)}>
-                  <Text style={styles.openBtnText}>Open Lesson Content</Text>
-                </TouchableOpacity>
+                            {fileUrl ? (
+                                <TouchableOpacity style={styles.openBtn} onPress={openLessonContent}>
+                                    <Text style={styles.openBtnText}>{isVideoLesson ? 'Play Video Lesson' : 'Open Lesson Content'}</Text>
+                                </TouchableOpacity>
               ) : null}
               {youtubeUrl ? (
                 <TouchableOpacity style={[styles.openBtn, styles.youtubeBtn]} onPress={() => setShowYouTubeModal(true)}>
@@ -408,13 +469,13 @@ const StudentCoursePlayer = () => {
                         <View style={styles.accessActionsRow}>
                             <TouchableOpacity
                                 style={styles.upgradeBtn}
-                                onPress={() => navigation.navigate('/student/subscriptions')}
+                                onPress={() => navigation.navigate('StudentSubscriptions')}
                             >
                                 <Text style={styles.upgradeBtnText}>Upgrade Plan</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.backBtnAlt}
-                                onPress={() => navigation.navigate(`/detail/${course_id}`)}
+                                onPress={navigateToCourseDetail}
                             >
                                 <Text style={styles.backBtnAltText}>Back to Course</Text>
                             </TouchableOpacity>
@@ -432,7 +493,7 @@ const StudentCoursePlayer = () => {
                 </View>
                 <Text style={styles.accessDeniedTitle}>Error Loading Content</Text>
                 <Text style={styles.accessDeniedText}>{error}</Text>
-                <TouchableOpacity style={styles.primaryBtn} onPress={() => navigation.navigate(`/detail/${course_id}`)}>
+                <TouchableOpacity style={styles.primaryBtn} onPress={navigateToCourseDetail}>
                     <Text style={styles.primaryBtnText}>Back to Course</Text>
                 </TouchableOpacity>
             </View>
@@ -443,13 +504,13 @@ const StudentCoursePlayer = () => {
         <>
                 <View style={styles.playerMobileHeader}>
                     <Text style={styles.courseTitleMini} numberOfLines={1}>{pageData?.course?.title}</Text>
-                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate(`/detail/${course_id}`)}>
+                    <TouchableOpacity style={styles.backBtn} onPress={navigateToCourseDetail}>
                         <Bootstrap name="x-lg" size={18} color="#6b7280" />
                     </TouchableOpacity>
                 </View>
 
                 <ScrollView style={styles.playerMainContent} contentContainerStyle={styles.mainContentPad}>
-                    <TouchableOpacity style={styles.backToCourseLink} onPress={() => navigation.navigate(`/detail/${course_id}`)}>
+                    <TouchableOpacity style={styles.backToCourseLink} onPress={navigateToCourseDetail}>
                         <Bootstrap name="arrow-left" size={14} color="#3b82f6" />
                         <Text style={styles.backToCourseText}>Back to Course</Text>
                     </TouchableOpacity>
@@ -590,6 +651,30 @@ const StudentCoursePlayer = () => {
                 </TouchableOpacity>
               </TouchableOpacity>
             </Modal>
+
+                        <Modal visible={showVideoModal && !!activeVideoUrl} transparent animationType="fade" onRequestClose={() => setShowVideoModal(false)}>
+                            <TouchableOpacity style={styles.videoModalOverlay} activeOpacity={1} onPress={() => setShowVideoModal(false)}>
+                                <TouchableOpacity style={styles.videoModalCard} activeOpacity={1} onPress={() => {}}>
+                                    <View style={styles.videoModalHeader}>
+                                        <Text style={styles.youtubeTitle} numberOfLines={1}>{activeVideoTitle}</Text>
+                                        <TouchableOpacity onPress={() => setShowVideoModal(false)}>
+                                            <Bootstrap name="x-lg" size={16} color="#fff" />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={styles.videoWrap}>
+                                        <Video
+                                            ref={videoRef}
+                                            source={{ uri: activeVideoUrl }}
+                                            style={styles.videoPlayer}
+                                            useNativeControls
+                                            resizeMode={ResizeMode.CONTAIN}
+                                            shouldPlay
+                                            isLooping={false}
+                                        />
+                                    </View>
+                                </TouchableOpacity>
+                            </TouchableOpacity>
+                        </Modal>
         </>
     );
 };
@@ -684,6 +769,12 @@ const styles = StyleSheet.create({
   youtubeTitle: { color: '#fff', fontWeight: '600', flex: 1 },
   youtubeBody: { padding: 16, gap: 12, backgroundColor: '#111' },
   youtubeText: { color: '#ddd' },
+
+    videoModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 16 },
+    videoModalCard: { width: '100%', maxWidth: 720, borderRadius: 14, overflow: 'hidden', backgroundColor: '#000' },
+    videoModalHeader: { backgroundColor: '#1a1a1a', borderBottomWidth: 1, borderBottomColor: '#333', paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    videoWrap: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' },
+    videoPlayer: { width: '100%', height: '100%' },
 });
 
 export default StudentCoursePlayer;

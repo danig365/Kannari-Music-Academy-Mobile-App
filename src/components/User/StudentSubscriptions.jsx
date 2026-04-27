@@ -191,6 +191,14 @@ const PaymentSheetForm = ({ plan, studentId, onSuccess, onCancel }) => {
 
 const StudentSubscriptions = () => {
     const navigation = useNavigation();
+    const navigateToStudentLogin = () => {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+            parentNav.navigate('Auth', { screen: 'StudentLogin' });
+            return;
+        }
+        navigation.navigate('StudentLogin');
+    };
     const [plans, setPlans] = useState([]);
     const [userSubscriptions, setUserSubscriptions] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -217,7 +225,7 @@ const StudentSubscriptions = () => {
     useEffect(() => {
         if (studentLoginStatus === null) return;
         if (studentLoginStatus !== 'true') {
-            navigation.navigate('/student/login');
+            navigateToStudentLogin();
         }
     }, [studentLoginStatus]);
 

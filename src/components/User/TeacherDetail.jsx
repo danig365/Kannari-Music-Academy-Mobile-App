@@ -22,6 +22,20 @@ const TeacherDetail = () => {
     const route = useRoute();
     const navigation = useNavigation();
 
+    const navigateToStudentLogin = () => {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+            parentNav.navigate('Auth', { screen: 'StudentLogin' });
+            return;
+        }
+        navigation.navigate('StudentLogin');
+    };
+
+    const openCourseDetail = (courseId) => {
+        if (!courseId) return;
+        navigation.navigate('CourseDetail', { course_id: courseId });
+    };
+
     const teacherId =
         route?.params?.teacher_id ||
         route?.params?.teacherId ||
@@ -51,7 +65,7 @@ const TeacherDetail = () => {
     useEffect(() => {
         if (studentLoginStatus === null) return;
         if (studentLoginStatus !== 'true') {
-            navigation.navigate('/student/login');
+            navigateToStudentLogin();
         }
     }, [studentLoginStatus]);
 
@@ -199,7 +213,7 @@ const TeacherDetail = () => {
                             <TouchableOpacity
                                 key={index}
                                 style={styles.courseCard}
-                                onPress={() => navigation.navigate(`/detail/${course.id}`)}
+                                onPress={() => openCourseDetail(course.id)}
                             >
                                 <View style={styles.courseCover}>
                                     <Bootstrap name="book" size={34} color="#ffffff" />

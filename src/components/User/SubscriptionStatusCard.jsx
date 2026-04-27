@@ -7,6 +7,9 @@ import LoadingSpinner from '../shared/LoadingSpinner';
 
 const SubscriptionStatusCard = ({ studentId, compact = false }) => {
     const navigation = useNavigation();
+    const openSubscriptions = () => {
+        navigation.navigate('StudentSubscriptions');
+    };
     const [subscription, setSubscription] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -59,7 +62,7 @@ const SubscriptionStatusCard = ({ studentId, compact = false }) => {
                 </View>
                 <TouchableOpacity
                     style={styles.subscribeBtn}
-                    onPress={() => navigation.navigate('/student/subscriptions')}
+                    onPress={openSubscriptions}
                 >
                     <Bootstrap name="star" size={13} color="#ffffff" />
                     <Text style={styles.subscribeBtnText}>View Plans</Text>
@@ -100,7 +103,7 @@ const SubscriptionStatusCard = ({ studentId, compact = false }) => {
                 </View>
                 <TouchableOpacity
                     style={styles.manageBtn}
-                    onPress={() => navigation.navigate('/student/subscriptions')}
+                    onPress={openSubscriptions}
                 >
                     <Text style={styles.manageBtnText}>Manage</Text>
                 </TouchableOpacity>
@@ -260,14 +263,14 @@ const SubscriptionStatusCard = ({ studentId, compact = false }) => {
             <View style={styles.subscriptionActions}>
                 <TouchableOpacity
                     style={[styles.actionBtn, styles.actionBtnOutline]}
-                    onPress={() => navigation.navigate('/student/subscriptions')}
+                    onPress={openSubscriptions}
                 >
                     <Text style={[styles.actionBtnText, styles.actionBtnTextOutline]}>Manage Subscription</Text>
                 </TouchableOpacity>
                 {isExpiringSoon && (
                     <TouchableOpacity
                         style={[styles.actionBtn, styles.actionBtnPrimary]}
-                        onPress={() => navigation.navigate('/student/subscriptions')}
+                        onPress={openSubscriptions}
                     >
                         <Text style={[styles.actionBtnText, styles.actionBtnTextPrimary]}>Renew Now</Text>
                     </TouchableOpacity>

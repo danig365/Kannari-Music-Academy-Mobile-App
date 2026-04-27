@@ -15,7 +15,7 @@ import { getStudentGamesOverview, getGameLeaderboard, seedPhase1Games } from '..
 /* ── Game meta ──────────────────────────────────────────────── */
 const GAME_META = {
   note_ninja:      { icon: '🎯', color: '#3b82f6', route: 'NoteNinjaGame' },
-  rhythm_rush:     { icon: '🥁', color: '#8b5cf6', route: 'RhythmRushGame' },
+  // rhythm_rush:     { icon: '🥁', color: '#8b5cf6', route: 'RhythmRushGame' },
   music_challenge: { icon: '⚡', color: '#f59e0b', route: 'MusicChallengeGame' },
 };
 
@@ -156,7 +156,7 @@ const StudentGamesHub = () => {
             <>
               {/* Game Cards */}
               <View style={styles.gamesGrid}>
-                {games.map(g => {
+                {games.filter(g => g.game.game_type !== 'rhythm_rush').map(g => {
                   const meta = GAME_META[g.game.game_type] || {};
                   const prof = g.profile || {};
                   const lvl  = prof.highest_level_unlocked || 1;
@@ -206,7 +206,7 @@ const StudentGamesHub = () => {
                 <View style={styles.recentSection}>
                   <Text style={[styles.sectionTitle, isCompact && styles.sectionTitleCompact]}>🕐 Recently Played</Text>
                   <View style={styles.recentList}>
-                    {recent.map(s => {
+                    {recent.filter(s => s.game_type !== 'rhythm_rush').map(s => {
                       const meta = GAME_META[s.game_type] || {};
                       return (
                         <View key={s.id} style={styles.recentItem}>
@@ -236,7 +236,7 @@ const StudentGamesHub = () => {
             <View style={styles.lbSection}>
               {/* Game selector */}
               <View style={styles.lbSelector}>
-                {games.map(g => {
+                {games.filter(g => g.game.game_type !== 'rhythm_rush').map(g => {
                   const meta = GAME_META[g.game.game_type] || {};
                   return (
                     <TouchableOpacity

@@ -12,6 +12,19 @@ const baseUrl = API_BASE_URL;
 
 const MyCourses = () => {
     const navigation = useNavigation();
+    const navigateToStudentLogin = () => {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+            parentNav.navigate('Auth', { screen: 'StudentLogin' });
+            return;
+        }
+        navigation.navigate('StudentLogin');
+    };
+
+    const openCourseDetail = (courseId) => {
+        if (!courseId) return;
+        navigation.navigate('CourseDetail', { course_id: courseId });
+    };
     const [studentId, setStudentId] = useState(null);
     const [studentLoginStatus, setStudentLoginStatus] = useState(null);
     const [courseData, setCourseData] = useState([]);
@@ -35,7 +48,7 @@ const MyCourses = () => {
     useEffect(() => {
         if (studentLoginStatus === null) return;
         if (studentLoginStatus !== 'true') {
-            navigation.navigate('/student/login');
+            navigateToStudentLogin();
         }
     }, [studentLoginStatus]);
 
@@ -88,7 +101,7 @@ const MyCourses = () => {
                             <Text style={styles.emptyText}>Start your musical journey by enrolling in a course</Text>
                             <TouchableOpacity
                                 style={styles.emptyPrimaryButton}
-                                onPress={() => navigation.navigate('/all-courses')}
+                                onPress={() => navigation.navigate('AllCourses')}
                             >
                                 <Text style={styles.emptyPrimaryButtonText}>Browse Courses</Text>
                             </TouchableOpacity>
@@ -99,7 +112,7 @@ const MyCourses = () => {
                                 <View key={index} style={styles.courseCard}>
                                     <TouchableOpacity
                                         style={styles.courseImageLink}
-                                        onPress={() => navigation.navigate(`/detail/${enrollment.course.id}`)}
+                                        onPress={() => openCourseDetail(enrollment.course.id)}
                                     >
                                         <View style={styles.courseImage}>
                                             {enrollment.course.featured_img ? (
@@ -116,14 +129,14 @@ const MyCourses = () => {
                                     <View style={styles.courseContent}>
                                         <TouchableOpacity
                                             style={styles.courseTitleLink}
-                                            onPress={() => navigation.navigate(`/detail/${enrollment.course.id}`)}
+                                            onPress={() => openCourseDetail(enrollment.course.id)}
                                         >
                                             <Text style={styles.courseTitle}>{enrollment.course.title}</Text>
                                         </TouchableOpacity>
 
                                         <TouchableOpacity
                                             style={styles.instructorLink}
-                                            onPress={() => navigation.navigate(`/teacher-detail/${enrollment.course.teacher.id}`)}
+                                            onPress={() => navigation.navigate('TeacherDetail', { teacher_id: enrollment.course.teacher.id })}
                                         >
                                             <View style={styles.instructorAvatar}>
                                                 {enrollment.course.teacher.profile_img ? (
@@ -156,7 +169,7 @@ const MyCourses = () => {
                                         <View style={styles.actionButtons}>
                                             <TouchableOpacity
                                                 style={styles.btnContinue}
-                                                onPress={() => navigation.navigate(`/detail/${enrollment.course.id}`)}
+                                                onPress={() => openCourseDetail(enrollment.course.id)}
                                             >
                                                 <Bootstrap name="play-circle-fill" size={14} color="#ffffff" />
                                                 <Text style={styles.btnContinueText}>Continue</Text>

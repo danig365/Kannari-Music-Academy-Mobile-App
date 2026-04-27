@@ -3,11 +3,14 @@ import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, S
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import axios from 'axios';
 import { Audio } from 'expo-av'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import AudioRecorder from './AudioRecorder';
 import { API_BASE_URL } from '../../config';
 
 const TeacherAudioMessages = () => {
   const baseUrl = API_BASE_URL;
+  const insets = useSafeAreaInsets()
+  const bottomInset = Math.max(insets.bottom, 12)
 
   const [teacherId, setTeacherId] = useState(null)
   const [messages, setMessages] = useState([]);
@@ -186,7 +189,7 @@ const TeacherAudioMessages = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingBottom: 16 + bottomInset }]} keyboardShouldPersistTaps='handled'>
       <View style={styles.headerRow}>
         <View style={styles.flexOne}>
           <Text style={styles.title}>Audio Messages</Text>

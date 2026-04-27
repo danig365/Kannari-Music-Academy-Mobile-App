@@ -4,7 +4,7 @@ import axios from 'axios'
 import LoadingSpinner from '../shared/LoadingSpinner'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useNavigation } from '@react-navigation/native'
-import { View, Text, TouchableOpacity, Image,  ScrollView, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet, useWindowDimensions } from 'react-native'
 import { Bootstrap } from '../shared/BootstrapIcon'
 
 import { API_BASE_URL } from '../../config';
@@ -13,12 +13,14 @@ const baseUrl = `${API_BASE_URL}/course/`;
 
 const AllCourses = () => {
   const navigation = useNavigation()
+  const { width } = useWindowDimensions()
   const [studentLoginStatus, setStudentLoginStatus] = useState(null)
   const [courseData, setCourseData] = useState([])
   const [nextUrl, setNextUrl] = useState()
   const [previousUrl, setPreviousUrl] = useState()
   const [loading, setLoading] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const isCompact = width < 768
 
   useEffect(() => {
     const loadAuth = async () => {
@@ -42,6 +44,11 @@ const AllCourses = () => {
   useEffect(() => {
     fetchData(baseUrl)
   }, [])
+
+  const openCourseDetail = (course) => {
+    if (!course?.id) return
+    navigation.navigate('CourseDetail', { course_id: course.id })
+  }
 
   const paginationHandler = (url) => {
     setCurrentPage(url.includes('page=') ? parseInt(url.split('page=')[1]) : 1)
@@ -75,7 +82,13 @@ const AllCourses = () => {
   }
 
   return (
-    <ScrollView style={styles.allCoursesMain} contentContainerStyle={styles.allCoursesMainContent}>
+    <ScrollView
+      style={styles.allCoursesMain}
+      contentContainerStyle={[styles.allCoursesMainContent, isCompact ? styles.allCoursesMainContentCompact : styles.allCoursesMainContentWide]}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+    >
+      <View style={styles.contentShell}>
           <View style={styles.pageHeader}>
             <View style={styles.pageHeaderTitleRow}>
               <Bootstrap name="music-note-list" size={24} color="#3b82f6" />
@@ -88,10 +101,10 @@ const AllCourses = () => {
 
           <View style={styles.coursesGrid}>
             {courseData && courseData.length > 0 ? courseData.map((course, index) => (
-              <View style={styles.courseCard} key={index}>
+              <View style={[styles.courseCard, !isCompact ? styles.courseCardWide : null]} key={index}>
                 <TouchableOpacity
                   style={styles.courseImageWrapper}
-                  onPress={() => navigation.navigate(`/detail/${course.id}`)}
+                  onPress={() => openCourseDetail(course)}
                 >
                   {course.featured_img ? (
                     <Image
@@ -107,7 +120,7 @@ const AllCourses = () => {
 
                 <View style={styles.courseBody}>
                   <Text style={styles.courseTitle}>
-                    <Text onPress={() => navigation.navigate(`/detail/${course.id}`)}>
+                    <Text onPress={() => openCourseDetail(course)}>
                       {course.title}
                     </Text>
                   </Text>
@@ -133,7 +146,7 @@ const AllCourses = () => {
                   <View style={styles.courseStats}>
                     <View style={styles.courseStatItem}>
                       <Bootstrap name="star-fill" size={12} color="#f59e0b" />
-                      <Text style={styles.courseStatText}>{course.course_rating ? course.course_rating.toFixed(1) : 'New'}</Text>
+                      <Text style={styles.courseStatText}>{course.course_rating ? course.course_rating.toFixed(1) : 'Not rated yet'}</Text>
                     </View>
                     <View style={styles.courseStatItem}>
                       <Bootstrap name="people" size={12} color="#10b981" />
@@ -146,7 +159,7 @@ const AllCourses = () => {
                   <View style={styles.courseFooter}>
                     <TouchableOpacity
                       style={styles.viewCourseBtn}
-                      onPress={() => navigation.navigate(`/detail/${course.id}`)}
+                      onPress={() => openCourseDetail(course)}
                     >
                       <Text style={styles.viewCourseBtnText}>View Course</Text>
                       <Bootstrap name="arrow-right" size={14} color="#ffffff" />
@@ -155,7 +168,7 @@ const AllCourses = () => {
                 </View>
               </View>
             )) : (
-              <View style={styles.emptyStateWrap}>
+                <View style={styles.emptyStateWrap}>
                 <View style={styles.emptyState}>
                   <Bootstrap name="music-note-beamed" size={56} color="#3b82f6" />
                   <Text style={styles.emptyStateTitle}>No Courses Available Yet</Text>
@@ -190,7 +203,8 @@ const AllCourses = () => {
               )}
             </View>
           )}
-        </ScrollView>
+      </View>
+    </ScrollView>
   )
 }
 
@@ -210,11 +224,25 @@ const styles = StyleSheet.create({
   allCoursesMain: {
     flex: 1,
     width: '100%',
-    backgroundColor: 'transparent',
+    backgroundColor: '#f8fbff',
   },
   allCoursesMainContent: {
-    padding: 32,
-    paddingBottom: 40,
+    flexGrow: 1,
+  },
+  allCoursesMainContentCompact: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 28,
+  },
+  allCoursesMainContentWide: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 36,
+  },
+  contentShell: {
+    width: '100%',
+    maxWidth: 920,
+    alignSelf: 'center',
   },
   mobileHeader: {
     display: 'flex',
@@ -257,9 +285,18 @@ const styles = StyleSheet.create({
     minHeight: 400,
   },
   pageHeader: {
-    marginBottom: 32,
+    marginBottom: 20,
     marginTop: 0,
-    padding: 0,
+    padding: 20,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.08)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
+    elevation: 2,
   },
   pageHeaderTitleRow: {
     flexDirection: 'row',
@@ -268,11 +305,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pageHeaderTitle: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: '800',
     color: '#1a1a1a',
     letterSpacing: -0.5,
-    lineHeight: 38,
+    lineHeight: 36,
   },
   pageHeaderSubtitle: {
     color: '#6b7280',
@@ -280,28 +317,29 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   coursesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 20,
+    gap: 16,
   },
   courseCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowRadius: 18,
+    elevation: 4,
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.08)',
-    flexBasis: 300,
-    flexGrow: 1,
+    borderColor: 'rgba(59, 130, 246, 0.10)',
+    width: '100%',
     flexDirection: 'column',
+  },
+  courseCardWide: {
+    maxWidth: 430,
+    alignSelf: 'center',
   },
   courseImageWrapper: {
     overflow: 'hidden',
-    height: 180,
+    height: 200,
     position: 'relative',
   },
   courseImage: {
@@ -310,15 +348,15 @@ const styles = StyleSheet.create({
   },
   coursePlaceholder: {
     width: '100%',
-    height: 180,
+    height: 200,
     backgroundColor: '#3b82f6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   courseBody: {
     paddingTop: 18,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
     flex: 1,
     flexDirection: 'column',
   },
@@ -330,8 +368,8 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   courseDescription: {
-    fontSize: 13,
-    marginBottom: 12,
+    fontSize: 14,
+    marginBottom: 14,
     color: '#6b7280',
     lineHeight: 20,
   },
@@ -369,10 +407,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 10,
-    marginBottom: 14,
+    paddingTop: 12,
+    marginBottom: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(59, 130, 246, 0.06)',
+    borderTopColor: 'rgba(59, 130, 246, 0.08)',
   },
   courseStatItem: {
     flexDirection: 'row',
@@ -389,9 +427,9 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   viewCourseBtn: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 10,
-    paddingVertical: 11,
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    paddingVertical: 13,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -399,6 +437,11 @@ const styles = StyleSheet.create({
     gap: 6,
     width: '100%',
     minHeight: 44,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 2,
   },
   viewCourseBtnText: {
     color: '#ffffff',
@@ -445,7 +488,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    marginTop: 36,
+    marginTop: 28,
   },
   paginationBtn: {
     borderWidth: 1,

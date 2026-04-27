@@ -243,7 +243,7 @@ const TeacherOfficeHours = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.title}>🕒 Office Hours</Text>
@@ -383,6 +383,9 @@ const TeacherOfficeHours = () => {
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
     padding: 16,
   },
   headerRow: {

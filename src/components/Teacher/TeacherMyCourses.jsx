@@ -117,7 +117,7 @@ const TeacherMyCourses = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.teacherPageWrapper}>
+    <ScrollView contentContainerStyle={styles.teacherPageWrapper} showsVerticalScrollIndicator={false}>
       <View style={styles.card}>
         <Text style={styles.cardHeader}>📚 My Courses</Text>
 
@@ -139,7 +139,10 @@ const TeacherMyCourses = () => {
 const styles = StyleSheet.create({
   teacherPageWrapper: {
     width: '100%',
-    padding: 0,
+    maxWidth: 1100,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 24,
   },
   card: {
     borderWidth: 1,

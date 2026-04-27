@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useNavigation } from '@react-navigation/native'
 import {
+    Platform,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -10,6 +11,7 @@ import {
     useWindowDimensions,
     View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Sidebar from './Sidebar'
 import { Bootstrap } from '../shared/BootstrapIcon'
 import LoadingSpinner from '../shared/LoadingSpinner'
@@ -17,12 +19,15 @@ import LoadingSpinner from '../shared/LoadingSpinner'
 const UserLayout = ({ children }) => {
     const navigation = useNavigation()
     const { width } = useWindowDimensions()
+    const insets = useSafeAreaInsets()
 
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [authChecked, setAuthChecked] = useState(false)
     const [isAuthenticated, setIsAuthenticated] = useState(false)
 
     const isMobile = width <= 768
+    const topInset = Platform.OS === 'ios' ? insets.top : 0
+    const mobileHeaderHeight = 60 + topInset
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -78,7 +83,7 @@ const UserLayout = ({ children }) => {
     return (
         <View style={styles.layout}>
             {isMobile && (
-                <View style={styles.mobileHeader}>
+                <View style={[styles.mobileHeader, { height: mobileHeaderHeight, paddingTop: topInset }]}>
                     <TouchableOpacity
                         style={styles.sidebarToggle}
                         onPress={toggleSidebar}
@@ -92,13 +97,14 @@ const UserLayout = ({ children }) => {
             )}
 
             {isMobile && sidebarOpen && (
-                <Pressable style={styles.sidebarOverlay} onPress={closeSidebar} />
+                <Pressable style={[styles.sidebarOverlay, { top: mobileHeaderHeight }]} onPress={closeSidebar} />
             )}
 
             <View
                 style={[
                     styles.sidebar,
                     isMobile ? styles.sidebarMobile : styles.sidebarDesktop,
+                    isMobile ? { top: mobileHeaderHeight } : null,
                     isMobile && !sidebarOpen ? styles.sidebarClosed : null,
                 ]}
             >
@@ -110,7 +116,13 @@ const UserLayout = ({ children }) => {
                 />
             </View>
 
-            <View style={[styles.mainContent, isMobile ? styles.mainContentMobile : styles.mainContentDesktop]}>
+            <View
+                style={[
+                    styles.mainContent,
+                    isMobile ? styles.mainContentMobile : styles.mainContentDesktop,
+                    isMobile ? { marginTop: mobileHeaderHeight, paddingBottom: 16 + insets.bottom } : null,
+                ]}
+            >
                 {children}
             </View>
         </View>
@@ -154,13 +166,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8f9fa',
     },
     mainContentDesktop: {
-        paddingVertical: 24,
-        paddingHorizontal: 24,
+        paddingTop: 0,
+        paddingBottom: 24,
+        paddingHorizontal: 0,
     },
     mainContentMobile: {
         marginTop: 60,
-        paddingVertical: 16,
-        paddingHorizontal: 16,
+        paddingTop: 0,
+        paddingBottom: 16,
+        paddingHorizontal: 0,
     },
     mobileHeader: {
         position: 'absolute',
@@ -175,6 +189,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(59, 130, 246, 0.1)',
         paddingHorizontal: 8,
+        paddingTop: 0,
     },
     sidebarToggle: {
         width: 44,

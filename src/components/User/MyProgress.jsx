@@ -21,6 +21,19 @@ const baseUrl = API_BASE_URL;
 
 const MyProgress = () => {
     const navigation = useNavigation();
+    const navigateToStudentLogin = () => {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+            parentNav.navigate('Auth', { screen: 'StudentLogin' });
+            return;
+        }
+        navigation.navigate('StudentLogin');
+    };
+
+    const openCourseDetail = (courseId) => {
+        if (!courseId) return;
+        navigation.navigate('CourseDetail', { course_id: courseId });
+    };
     const [studentId, setStudentId] = useState(null);
     const [studentLoginStatus, setStudentLoginStatus] = useState(null);
     const [courseProgress, setCourseProgress] = useState([]);
@@ -48,7 +61,7 @@ const MyProgress = () => {
     useEffect(() => {
         if (studentLoginStatus === null) return;
         if (studentLoginStatus !== 'true') {
-            navigation.navigate('/student/login');
+            navigateToStudentLogin();
         }
     }, [studentLoginStatus]);
 
@@ -243,7 +256,7 @@ const MyProgress = () => {
 
                                             <View style={styles.courseInfo}>
                                                 <TouchableOpacity
-                                                    onPress={() => navigation.navigate(`/detail/${cp.course?.id}`)}
+                                                    onPress={() => openCourseDetail(cp.course?.id)}
                                                 >
                                                     <Text style={styles.courseTitle}>{cp.course?.title}</Text>
                                                 </TouchableOpacity>
@@ -281,7 +294,7 @@ const MyProgress = () => {
                                                 ) : (
                                                     <TouchableOpacity
                                                         style={[styles.actionButton, styles.actionButtonContinue]}
-                                                        onPress={() => navigation.navigate(`/detail/${cp.course?.id}`)}
+                                                        onPress={() => openCourseDetail(cp.course?.id)}
                                                     >
                                                         <Bootstrap name="play-fill" size={16} color="#ffffff" />
                                                     </TouchableOpacity>
@@ -303,7 +316,7 @@ const MyProgress = () => {
                             </Text>
                             <TouchableOpacity
                                 style={styles.browseButton}
-                                onPress={() => navigation.navigate('/all-courses')}
+                                onPress={() => navigation.navigate('AllCourses')}
                             >
                                 <Bootstrap name="search" size={14} color="#ffffff" />
                                 <Text style={styles.browseButtonText}>Explore Courses</Text>
@@ -409,22 +422,34 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         marginBottom: 18,
-        marginHorizontal: -6,
+        gap: 10,
     },
     statCard: {
-        width: '50%',
-        paddingHorizontal: 6,
-        marginBottom: 12,
+        width: '47.5%',
+        backgroundColor: '#ffffff',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(59,130,246,0.1)',
+        padding: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
     },
     statCardDesktop: {
-        width: '25%',
+        width: '23%',
     },
     statIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
+        width: 44,
+        height: 44,
+        borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
+        flexShrink: 0,
     },
     statContent: {
         flex: 1,
@@ -433,11 +458,11 @@ const styles = StyleSheet.create({
         color: '#1a1a1a',
         fontSize: 20,
         fontWeight: '800',
-        marginBottom: 2,
+        marginBottom: 1,
     },
     statLabel: {
         color: '#6b7280',
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '500',
     },
     filterPills: {

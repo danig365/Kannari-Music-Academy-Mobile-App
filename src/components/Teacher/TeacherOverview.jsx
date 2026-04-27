@@ -119,7 +119,7 @@ const TeacherOverview = () => {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerWrap}>
         <View>
           <Text style={styles.pageTitle}>Dashboard Overview</Text>
@@ -375,7 +375,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   container: {
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
     padding: 20,
+    paddingTop: 16,
     backgroundColor: '#f8fafc',
     gap: 20,
   },

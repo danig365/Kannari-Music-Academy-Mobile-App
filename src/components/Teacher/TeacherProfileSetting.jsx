@@ -2,7 +2,7 @@ import React from 'react'
 import { useEffect } from 'react'
 import axios from 'axios'
 import { useState } from 'react'
-import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, ActivityIndicator, useWindowDimensions } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useNavigation } from '@react-navigation/native'
@@ -15,10 +15,13 @@ const baseUrl = API_BASE_URL;
 
 const TeacherProfileSetting = () => {
     const navigation = useNavigation()
+  const { width } = useWindowDimensions()
+  const isCompactScreen = width < 768
     const [loading, setLoading] = useState(true);
     const [fieldErrors, setFieldErrors] = useState({});
     const [teacherId, setTeacherId] = useState(null)
     const [teacherLoginStatus, setTeacherLoginStatus] = useState(null)
+    const [updatingProfile, setUpdatingProfile] = useState(false)
 
     const [teacherData,setTeacherData]=useState({
         'full_name':'',
@@ -38,6 +41,7 @@ const TeacherProfileSetting = () => {
 
     const [verificationData, setVerificationData] = useState(null);
     const [verificationLoading, setVerificationLoading] = useState(false);
+    const [verificationActionLoading, setVerificationActionLoading] = useState(false);
     const [verificationForm, setVerificationForm] = useState({
       document_type: 'government_id',
       id_document: null,
@@ -69,37 +73,37 @@ const TeacherProfileSetting = () => {
       }
     }, [teacherLoginStatus, navigation])
 
-    useEffect(()=>{
+    useEffect(() => {
       if (!teacherId) return
 
-      try{
-          axios.get(baseUrl+'/teacher/'+teacherId)
-          .then((res)=>{
-              setTeacherData({
-              full_name:res.data.full_name,
-              email:res.data.email,
-              qualification:res.data.qualification,
-              mobile_no:res.data.mobile_no,
-              skills:res.data.skills,
-              profile_img:res.data.profile_img,
-              p_img:'',
-              face_url:res.data.face_url || '',
-              insta_url:res.data.insta_url || '',
-              twit_url:res.data.twit_url || '',
-              web_url:res.data.web_url || '',
-              you_url:res.data.you_url || '',
-            });
-            setLoading(false);
+      const fetchProfile = async () => {
+        setLoading(true)
+        try {
+          const res = await axios.get(baseUrl + '/teacher/' + teacherId)
+          setTeacherData({
+            full_name: res.data.full_name,
+            email: res.data.email,
+            qualification: res.data.qualification,
+            mobile_no: res.data.mobile_no,
+            skills: res.data.skills,
+            profile_img: res.data.profile_img,
+            p_img: '',
+            face_url: res.data.face_url || '',
+            insta_url: res.data.insta_url || '',
+            twit_url: res.data.twit_url || '',
+            web_url: res.data.web_url || '',
+            you_url: res.data.you_url || '',
           })
-          .catch((error) => {
-              console.log(error);
-              setLoading(false);
-          });
-      }catch(error){
-          console.log(error);
-          setLoading(false);
+        } catch (error) {
+          console.log(error)
+          Alert.alert('Failed', 'Unable to load profile details. Please try again.')
+        } finally {
+          setLoading(false)
+        }
       }
-    },[teacherId]);
+
+      fetchProfile()
+    }, [teacherId]);
 
     const fetchVerificationStatus = async () => {
       if (!teacherId) return;
@@ -128,7 +132,7 @@ const TeacherProfileSetting = () => {
 
     const pickAnyFile = async () => {
       const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
+        type: ['image/*', 'application/pdf'],
         multiple: false,
         copyToCacheDirectory: true,
       })
@@ -137,9 +141,27 @@ const TeacherProfileSetting = () => {
       if (!file) return null
       return {
         uri: file.uri,
-        name: file.name || 'file',
-        type: file.mimeType || 'application/octet-stream',
+        name: file.name || `document-${Date.now()}.pdf`,
+        type: file.mimeType || 'application/pdf',
       }
+    }
+
+    const getApiErrorMessage = (error, fallbackMessage) => {
+      const data = error?.response?.data
+      if (!data) return fallbackMessage
+      if (typeof data === 'string') return data
+      if (typeof data?.message === 'string') return data.message
+      if (typeof data?.detail === 'string') return data.detail
+      if (Array.isArray(data?.non_field_errors) && data.non_field_errors[0]) return String(data.non_field_errors[0])
+
+      if (typeof data === 'object') {
+        const firstKey = Object.keys(data)[0]
+        const firstValue = data[firstKey]
+        if (Array.isArray(firstValue) && firstValue[0]) return `${firstKey}: ${String(firstValue[0])}`
+        if (typeof firstValue === 'string') return `${firstKey}: ${firstValue}`
+      }
+
+      return fallbackMessage
     }
 
     const pickImageFile = async () => {
@@ -158,7 +180,13 @@ const TeacherProfileSetting = () => {
       }
     }
 
-    const submitForm=()=>{
+    const submitForm = async () => {
+      if (!teacherId) {
+        Alert.alert('Session Expired', 'Please log in again to update your profile.')
+        navigation.navigate('TeacherLogin')
+        return
+      }
+
         const errors = validateTeacherProfileForm({
             full_name: teacherData.full_name,
             email: teacherData.email
@@ -185,85 +213,142 @@ const TeacherProfileSetting = () => {
             teacherFormData.append('profile_img', teacherData.p_img);
         }
 
-        try{
-            axios.put(baseUrl+'/teacher/'+teacherId+'/',teacherFormData,{
-                headers: {
-                    'content-type':'multipart/form-data'
-                }
-            }).then(async(response)=>{
-                if(response.status===200){
-                    if(response.data.profile_img){
-                        await AsyncStorage.setItem('teacherProfileImg', response.data.profile_img);
-                    }
-                    Alert.alert('Success', 'Profile Updated Successfully')
-                }
-            })
-        }catch(error){
-            console.log(error);
-            setTeacherData({'status':'error'})
+        setUpdatingProfile(true)
+        try {
+          const response = await axios.put(baseUrl + '/teacher/' + teacherId + '/', teacherFormData, {
+            headers: {
+              'Content-Type':'multipart/form-data'
+            }
+          })
+
+          if (response.status === 200) {
+            if (response.data.profile_img) {
+              await AsyncStorage.setItem('teacherProfileImg', response.data.profile_img)
+            }
+            setTeacherData((prev) => ({
+              ...prev,
+              p_img: '',
+              profile_img: response.data.profile_img || prev.profile_img,
+            }))
+            Alert.alert('Success', 'Profile Updated Successfully')
+          } else {
+            Alert.alert('Failed', 'Unable to update profile. Please try again.')
+          }
+        } catch (error) {
+          console.log(error)
+          Alert.alert('Failed', error?.response?.data?.message || 'Unable to update profile right now.')
+        } finally {
+          setUpdatingProfile(false)
         }
     }
 
     const startVerification = async () => {
+      if (!teacherId) {
+        Alert.alert('Session Expired', 'Please log in again.')
+        navigation.navigate('TeacherLogin')
+        return
+      }
+      setVerificationActionLoading(true)
       try {
         const res = await axios.post(`${baseUrl}/teacher/${teacherId}/verification/start/`);
         Alert.alert('Success', res.data?.message || 'Verification started')
         fetchVerificationStatus();
       } catch (error) {
-        Alert.alert('Failed', error.response?.data?.message || 'Unable to start verification.')
+        Alert.alert('Failed', getApiErrorMessage(error, 'Unable to start verification.'))
+      } finally {
+        setVerificationActionLoading(false)
       }
     };
 
     const uploadIdDocument = async () => {
+      if (!teacherId) {
+        Alert.alert('Session Expired', 'Please log in again.')
+        navigation.navigate('TeacherLogin')
+        return
+      }
       if (!verificationForm.id_document) {
         Alert.alert('Warning', 'Please select an ID document file.')
         return;
       }
+      setVerificationActionLoading(true)
       try {
         const formData = new FormData();
+        const idDoc = verificationForm.id_document
         formData.append('document_type', verificationForm.document_type);
-        formData.append('id_document', verificationForm.id_document);
-        const res = await axios.post(`${baseUrl}/teacher/${teacherId}/verification/upload-id/`, formData);
+        formData.append('id_document', {
+          uri: idDoc.uri,
+          name: idDoc.name || `id-document-${Date.now()}.jpg`,
+          type: idDoc.type || 'image/jpeg',
+        });
+        const res = await axios.post(`${baseUrl}/teacher/${teacherId}/verification/upload-id/`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
         Alert.alert('Success', res.data?.message || 'ID submitted')
         setVerificationForm(prev => ({ ...prev, id_document: null }));
         fetchVerificationStatus();
       } catch (error) {
-        Alert.alert('Failed to upload ID', error.response?.data?.message || 'Please try again.')
+        Alert.alert('Failed to upload ID', getApiErrorMessage(error, 'Please try again.'))
+      } finally {
+        setVerificationActionLoading(false)
       }
     };
 
     const submitBackgroundCheck = async () => {
+      if (!teacherId) {
+        Alert.alert('Session Expired', 'Please log in again.')
+        navigation.navigate('TeacherLogin')
+        return
+      }
+      setVerificationActionLoading(true)
       try {
         const formData = new FormData();
         formData.append('provider_name', verificationForm.provider_name || '');
         formData.append('reference_number', verificationForm.reference_number || '');
         formData.append('confirmation_email', verificationForm.confirmation_email || '');
         if (verificationForm.evidence_file) {
-          formData.append('evidence_file', verificationForm.evidence_file);
+          formData.append('evidence_file', {
+            uri: verificationForm.evidence_file.uri,
+            name: verificationForm.evidence_file.name || `background-evidence-${Date.now()}.pdf`,
+            type: verificationForm.evidence_file.type || 'application/pdf',
+          });
         }
-        const res = await axios.post(`${baseUrl}/teacher/${teacherId}/verification/background-check/`, formData);
+        const res = await axios.post(`${baseUrl}/teacher/${teacherId}/verification/background-check/`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
         Alert.alert('Success', res.data?.message || 'Background details submitted')
         fetchVerificationStatus();
       } catch (error) {
-        Alert.alert('Failed to submit background check', error.response?.data?.message || 'Please try again.')
+        Alert.alert('Failed to submit background check', getApiErrorMessage(error, 'Please try again.'))
+      } finally {
+        setVerificationActionLoading(false)
       }
     };
 
     const signAgreement = async (agreementType) => {
+      if (!teacherId) {
+        Alert.alert('Session Expired', 'Please log in again.')
+        navigation.navigate('TeacherLogin')
+        return
+      }
       const signatureText = (verificationForm.signature_text || '').trim();
       if (!signatureText) {
         Alert.alert('Warning', 'Please enter signature text first.')
         return;
       }
+      setVerificationActionLoading(true)
       try {
         const payload = new FormData();
         payload.append('agreement_type', agreementType);
         payload.append('signature_text', signatureText);
-        const res = await axios.post(`${baseUrl}/teacher/${teacherId}/verification/sign-agreement/`, payload);
+        const res = await axios.post(`${baseUrl}/teacher/${teacherId}/verification/sign-agreement/`, payload, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
         Alert.alert('Success', res.data?.message || 'Agreement submitted')
         fetchVerificationStatus();
       } catch (error) {
-        Alert.alert('Failed to sign agreement', error.response?.data?.message || 'Please try again.')
+        Alert.alert('Failed to sign agreement', getApiErrorMessage(error, 'Please try again.'))
+      } finally {
+        setVerificationActionLoading(false)
       }
     };
 
@@ -277,15 +362,15 @@ const TeacherProfileSetting = () => {
     }
 
   return (
-    <ScrollView contentContainerStyle={styles.page}>
+    <ScrollView contentContainerStyle={[styles.page, isCompactScreen ? styles.pageCompact : null]} showsVerticalScrollIndicator={false}>
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardHeaderIcon}>👤</Text>
           <Text style={styles.cardHeaderTitle}>Profile Settings</Text>
         </View>
 
-        <View style={styles.cardBody}>
-          <View style={styles.verifyBox}>
+        <View style={[styles.cardBody, isCompactScreen ? styles.cardBodyCompact : null]}>
+          <View style={[styles.verifyBox, isCompactScreen ? styles.verifyBoxCompact : null]}>
             <View style={styles.verifyHeaderRow}>
               <Text style={styles.verifyTitle}>Child Safety Verification</Text>
               <TouchableOpacity style={styles.outlineBtn} onPress={fetchVerificationStatus}>
@@ -294,20 +379,79 @@ const TeacherProfileSetting = () => {
             </View>
 
             {verificationLoading ? (
-              <Text style={styles.verifyLoadingText}>Loading verification status...</Text>
+              <View style={styles.verifyLoadingRow}>
+                <ActivityIndicator size='small' color='#667eea' />
+                <Text style={styles.verifyLoadingText}>Loading verification status...</Text>
+              </View>
             ) : (
               <>
-                <View style={styles.verifyStatusActionsWrap}>
-                  <View style={styles.badgeWrap}>
-                    <Text style={styles.badge}>Overall: {verificationData?.overall_status || 'not_started'}</Text>
-                    <Text style={styles.badge}>ID: {verificationData?.id_verification_status || 'pending'}</Text>
-                    <Text style={styles.badge}>Background: {verificationData?.background_check_status || 'pending'}</Text>
-                    <Text style={styles.badge}>Agreements: {verificationData?.agreement_status || 'pending'}</Text>
-                    <Text style={styles.badge}>{verificationData?.can_teach_minors ? 'Can Teach Minors' : 'Minor Teaching Blocked'}</Text>
+                {/* ── Admin Decision Banner ── */}
+                {verificationData?.can_teach_minors ? (
+                  <View style={styles.approvedBanner}>
+                    <Text style={styles.approvedBannerIcon}>✅</Text>
+                    <View style={styles.approvedBannerText}>
+                      <Text style={styles.approvedBannerTitle}>Approved to Teach Minors</Text>
+                      <Text style={styles.approvedBannerSub}>Admin has verified your identity, background, and agreements.</Text>
+                    </View>
                   </View>
+                ) : (
+                  <View style={styles.blockedBanner}>
+                    <Text style={styles.blockedBannerIcon}>🔒</Text>
+                    <View style={styles.approvedBannerText}>
+                      <Text style={styles.blockedBannerTitle}>Minor Teaching Not Yet Approved</Text>
+                      <Text style={styles.blockedBannerSub}>Complete all steps below and wait for admin review.</Text>
+                    </View>
+                  </View>
+                )}
 
+                {/* ── Step-by-step status cards ── */}
+                <View style={styles.statusStepsWrap}>
+                  {[
+                    {
+                      label: 'Overall Status',
+                      value: verificationData?.overall_status || 'not_started',
+                      icon: '📋',
+                    },
+                    {
+                      label: 'ID Verification',
+                      value: verificationData?.id_verification_status || 'pending',
+                      icon: '🪪',
+                    },
+                    {
+                      label: 'Background Check',
+                      value: verificationData?.background_check_status || 'pending',
+                      icon: '🔍',
+                    },
+                    {
+                      label: 'Agreements',
+                      value: verificationData?.agreement_status || 'pending',
+                      icon: '✍️',
+                    },
+                  ].map((step) => {
+                    const isApproved = ['approved', 'verified', 'completed', 'active'].includes(step.value)
+                    const isReview = ['in_review', 'submitted', 'pending_review'].includes(step.value)
+                    const isRejected = ['rejected', 'failed', 'expired'].includes(step.value)
+                    const statusColor = isApproved ? '#166534' : isRejected ? '#991b1b' : isReview ? '#92400e' : '#475569'
+                    const statusBg = isApproved ? '#dcfce7' : isRejected ? '#fee2e2' : isReview ? '#fef3c7' : '#f1f5f9'
+                    const statusDot = isApproved ? '●' : isRejected ? '●' : isReview ? '●' : '○'
+                    return (
+                      <View key={step.label} style={styles.statusStepRow}>
+                        <Text style={styles.statusStepIcon}>{step.icon}</Text>
+                        <Text style={styles.statusStepLabel}>{step.label}</Text>
+                        <View style={[styles.statusStepBadge, { backgroundColor: statusBg }]}>
+                          <Text style={[styles.statusStepDot, { color: statusColor }]}>{statusDot}</Text>
+                          <Text style={[styles.statusStepValue, { color: statusColor }]}>
+                            {step.value.replace(/_/g, ' ')}
+                          </Text>
+                        </View>
+                      </View>
+                    )
+                  })}
+                </View>
+
+                <View style={styles.verifyStatusActionsWrap}>
                   <TouchableOpacity style={styles.primarySmallBtn} onPress={startVerification}>
-                    <Text style={styles.primarySmallBtnText}>Start / Re-submit Verification</Text>
+                    <Text style={styles.primarySmallBtnText}>{verificationActionLoading ? 'Please wait...' : 'Start / Re-submit Verification'}</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -331,7 +475,7 @@ const TeacherProfileSetting = () => {
                 >
                   <Text style={styles.filePickerText}>{verificationForm.id_document?.name || 'Upload ID Document'}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.outlineBtn} onPress={uploadIdDocument}>
+                <TouchableOpacity style={styles.outlineBtn} onPress={uploadIdDocument} disabled={verificationActionLoading}>
                   <Text style={styles.outlineBtnText}>Submit ID for Review</Text>
                 </TouchableOpacity>
 
@@ -364,7 +508,7 @@ const TeacherProfileSetting = () => {
                 >
                   <Text style={styles.filePickerText}>{verificationForm.evidence_file?.name || 'Background Evidence (optional)'}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.outlineBtn} onPress={submitBackgroundCheck}>
+                <TouchableOpacity style={styles.outlineBtn} onPress={submitBackgroundCheck} disabled={verificationActionLoading}>
                   <Text style={styles.outlineBtnText}>Submit Background Check</Text>
                 </TouchableOpacity>
 
@@ -376,13 +520,13 @@ const TeacherProfileSetting = () => {
                   onChangeText={(text) => setVerificationForm(prev => ({ ...prev, signature_text: text }))}
                 />
                 <View style={styles.agreementBtnsWrap}>
-                  <TouchableOpacity style={styles.outlineBtn} onPress={() => signAgreement('child_safety')}>
+                  <TouchableOpacity style={styles.outlineBtn} onPress={() => signAgreement('child_safety')} disabled={verificationActionLoading}>
                     <Text style={styles.outlineBtnText}>Sign Child Safety</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.outlineBtn} onPress={() => signAgreement('code_of_conduct')}>
+                  <TouchableOpacity style={styles.outlineBtn} onPress={() => signAgreement('code_of_conduct')} disabled={verificationActionLoading}>
                     <Text style={styles.outlineBtnText}>Sign Code of Conduct</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.outlineBtn} onPress={() => signAgreement('background_check_consent')}>
+                  <TouchableOpacity style={styles.outlineBtn} onPress={() => signAgreement('background_check_consent')} disabled={verificationActionLoading}>
                     <Text style={styles.outlineBtnText}>Sign Background Consent</Text>
                   </TouchableOpacity>
                 </View>
@@ -475,8 +619,8 @@ const TeacherProfileSetting = () => {
           <TextInput value={teacherData.you_url} onChangeText={(text) => handleChange('you_url', text)} placeholder='https://youtube.com/your-channel' style={styles.input} />
 
           <View style={styles.actionButtonsWrap}>
-            <TouchableOpacity onPress={submitForm} style={styles.updateBtn}>
-              <Text style={styles.updateBtnText}>Update Profile</Text>
+            <TouchableOpacity onPress={submitForm} disabled={updatingProfile} style={[styles.updateBtn, updatingProfile ? styles.updateBtnDisabled : null]}>
+              <Text style={styles.updateBtnText}>{updatingProfile ? 'Updating...' : 'Update Profile'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -487,8 +631,16 @@ const TeacherProfileSetting = () => {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 16,
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     backgroundColor: '#f8fafc',
+  },
+  pageCompact: {
+    paddingHorizontal: 8,
+    paddingVertical: 10,
   },
   loaderWrap: {
     flex: 1,
@@ -524,6 +676,9 @@ const styles = StyleSheet.create({
   cardBody: {
     padding: 20,
   },
+  cardBodyCompact: {
+    padding: 12,
+  },
   verifyBox: {
     marginBottom: 28,
     padding: 16,
@@ -531,6 +686,9 @@ const styles = StyleSheet.create({
     borderColor: '#f5f7fa',
     borderRadius: 12,
     backgroundColor: '#fafbff',
+  },
+  verifyBoxCompact: {
+    padding: 10,
   },
   verifyHeaderRow: {
     flexDirection: 'row',
@@ -546,15 +704,108 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1a1a1a',
   },
+  verifyLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+  },
   verifyLoadingText: {
     color: '#6b7280',
     fontSize: 14,
   },
-  badgeWrap: {
+  approvedBanner: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    gap: 10,
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1.5,
+    borderColor: '#86efac',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 14,
+  },
+  approvedBannerIcon: {
+    fontSize: 20,
+    marginTop: 1,
+  },
+  approvedBannerText: {
+    flex: 1,
+  },
+  approvedBannerTitle: {
+    fontWeight: '700',
+    color: '#15803d',
+    fontSize: 14,
+  },
+  approvedBannerSub: {
+    color: '#166534',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  blockedBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#fef9ec',
+    borderWidth: 1.5,
+    borderColor: '#fcd34d',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 14,
+  },
+  blockedBannerIcon: {
+    fontSize: 20,
+    marginTop: 1,
+  },
+  blockedBannerTitle: {
+    fontWeight: '700',
+    color: '#92400e',
+    fontSize: 14,
+  },
+  blockedBannerSub: {
+    color: '#78350f',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  statusStepsWrap: {
+    gap: 6,
+    marginBottom: 14,
+  },
+  statusStepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  statusStepIcon: {
+    fontSize: 15,
+  },
+  statusStepLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  statusStepBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 20,
+  },
+  statusStepDot: {
+    fontSize: 8,
+  },
+  statusStepValue: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   verifyStatusActionsWrap: {
     marginBottom: 10,
@@ -705,6 +956,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: '#667eea',
     borderRadius: 12,
+  },
+  updateBtnDisabled: {
+    opacity: 0.65,
   },
   updateBtnText: {
     color: '#fff',

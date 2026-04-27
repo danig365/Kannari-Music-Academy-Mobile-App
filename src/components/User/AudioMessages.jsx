@@ -13,7 +13,10 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bootstrap } from '../shared/BootstrapIcon';
 import { useNavigation } from '@react-navigation/native';
 import { API_BASE_URL } from '../../config';
@@ -21,6 +24,8 @@ import { API_BASE_URL } from '../../config';
 const AudioMessages = () => {
   const navigation = useNavigation();
   const baseUrl = API_BASE_URL;
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 12);
 
   const [studentId, setStudentId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -191,7 +196,7 @@ const AudioMessages = () => {
 
   return (
     <>
-        <ScrollView style={styles.mainScroll} contentContainerStyle={styles.mainContent}>
+        <ScrollView style={styles.mainScroll} contentContainerStyle={[styles.mainContent, { paddingBottom: 28 + bottomInset }]} keyboardShouldPersistTaps="handled">
           {minorBlocked && (
             <View style={styles.minorBlockedBanner}>
               <View style={styles.minorBlockedIconWrap}>
@@ -202,7 +207,7 @@ const AudioMessages = () => {
                 <Text style={styles.minorBlockedText}>
                   Messaging features are restricted for students under 18 until a parent or guardian approves your account.
                 </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('/parent/login')}>
+                <TouchableOpacity onPress={() => navigation.navigate('ParentLogin')}>
                   <Text style={styles.parentPortalLink}>Parent Portal</Text>
                 </TouchableOpacity>
               </View>
@@ -299,8 +304,13 @@ const AudioMessages = () => {
         </ScrollView>
 
       <Modal visible={reportModal.visible} transparent animationType="fade" onRequestClose={closeReportModal}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <KeyboardAvoidingView
+          style={styles.modalKeyboardWrap}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+        >
+          <View style={[styles.modalOverlay, { paddingBottom: bottomInset }]}>
+            <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Report Audio Message</Text>
             <Text style={styles.modalHint}>Describe the issue</Text>
 
@@ -327,8 +337,9 @@ const AudioMessages = () => {
                 )}
               </TouchableOpacity>
             </View>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );
@@ -381,6 +392,9 @@ const styles = StyleSheet.create({
   mainContent: {
     padding: 16,
     paddingBottom: 28,
+  },
+  modalKeyboardWrap: {
+    flex: 1,
   },
   minorBlockedBanner: {
     padding: 16,

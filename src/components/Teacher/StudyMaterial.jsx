@@ -70,7 +70,7 @@ const StudyMaterial = () => {
     }
 
     return (
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
             <View style={styles.card}>
                 <View style={styles.headerRow}>
                     <Text style={styles.headerTitle}>All Study Materials ({totalResult})</Text>
@@ -112,6 +112,9 @@ const StudyMaterial = () => {
 
 const styles = StyleSheet.create({
     container: {
+        width: '100%',
+        maxWidth: 1100,
+        alignSelf: 'center',
         padding: 16,
         backgroundColor: '#f8fafc',
     },

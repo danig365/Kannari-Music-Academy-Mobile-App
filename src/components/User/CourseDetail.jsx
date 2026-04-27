@@ -19,6 +19,20 @@ const CourseDetail = () => {
     const route = useRoute();
     const course_id = route?.params?.course_id || route?.params?.id;
 
+    const navigateToStudentLogin = () => {
+      const parentNav = navigation.getParent();
+      if (parentNav) {
+        parentNav.navigate('Auth', { screen: 'StudentLogin' });
+        return;
+      }
+      navigation.navigate('StudentLogin');
+    };
+
+    const openCourseDetail = (id) => {
+      if (!id) return;
+      navigation.navigate('CourseDetail', { course_id: id });
+    };
+
     const [courseData, setCourseData] = useState({});
     const [chapterData, setChapterData] = useState([]);
     const [teacherData, setTeacherData] = useState({});
@@ -34,6 +48,7 @@ const CourseDetail = () => {
     const [courseAccess, setCourseAccess] = useState({ can_access: true, checking: true });
     const [subscriptionInfo, setSubscriptionInfo] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [submittingRating, setSubmittingRating] = useState(false);
     const [studentId, setStudentId] = useState(null);
     const [studentLoginStatus, setStudentLoginStatus] = useState(null);
     const [showRatingModal, setShowRatingModal] = useState(false);
@@ -61,7 +76,7 @@ const CourseDetail = () => {
     useEffect(() => {
       if (studentLoginStatus !== null && studentLoginStatus !== 'true') {
         Alert.alert('Login Required', 'Please login to view course details', [
-          { text: 'OK', onPress: () => navigation.navigate('/student/login') }
+          { text: 'OK', onPress: navigateToStudentLogin }
         ]);
       }
     }, [studentLoginStatus, navigation]);
@@ -188,7 +203,7 @@ const CourseDetail = () => {
                   'You need an active subscription to enroll in courses.',
                   [
                     { text: 'Cancel', style: 'cancel' },
-                    { text: 'Browse Plans', onPress: () => navigation.navigate('/student/subscriptions') }
+                    { text: 'Browse Plans', onPress: () => navigation.navigate('StudentSubscriptions') }
                   ]
                 );
                 return;
@@ -205,7 +220,7 @@ const CourseDetail = () => {
               `${courseAccess.message || courseAccess.reason || 'This course requires an active subscription.'}${courseData.required_access_level ? `\nRequired Level: ${formatAccessLevel(courseData.required_access_level)}` : ''}`,
               [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'View Plans', onPress: () => navigation.navigate('/student/subscriptions') }
+                { text: 'View Plans', onPress: () => navigation.navigate('StudentSubscriptions') }
               ]
             );
             return;
@@ -226,7 +241,7 @@ const CourseDetail = () => {
                   result.message || result.error || 'You do not meet the subscription requirements for this course.',
                   [
                     { text: 'Close', style: 'cancel' },
-                    { text: 'View Plans', onPress: () => navigation.navigate('/student/subscriptions') }
+                    { text: 'View Plans', onPress: () => navigation.navigate('StudentSubscriptions') }
                   ]
                 );
             }
@@ -244,21 +259,44 @@ const CourseDetail = () => {
     };
 
     const formSubmit = async () => {
+      if (!studentId) {
+        Alert.alert('Login Required', 'Please login again before submitting a rating.');
+        return;
+      }
+
+      const ratingValue = Number(ratingData.rating);
+      if (!Number.isFinite(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+        Alert.alert('Invalid Rating', 'Please enter a rating from 1 to 5.');
+        return;
+      }
+
       const _formData = new FormData();
       _formData.append('course', course_id);
       _formData.append('student', studentId);
-      _formData.append('rating', ratingData.rating);
-      _formData.append('reviews', ratingData.reviews);
+      _formData.append('rating', String(ratingValue));
+      _formData.append('reviews', (ratingData.reviews || '').trim());
 
       try {
-          const res = await axios.post(`${baseUrl}/course-rating/`, _formData);
+          setSubmittingRating(true);
+          const res = await axios.post(`${baseUrl}/course-rating/`, _formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
           if (res.status === 200 || res.status === 201) {
               Alert.alert('Success', 'Rated Successfully!');
               setShowRatingModal(false);
               setRatingStatus('success');
+              setRatingData({ rating: '', reviews: '' });
+          } else {
+              Alert.alert('Rating Failed', 'Unable to submit your rating right now.');
           }
       } catch (error) {
-          console.log(error);
+          console.log('Rating submit error:', error);
+          Alert.alert(
+            'Rating Failed',
+            error.response?.data?.message || error.response?.data?.error || 'Unable to submit your rating right now.'
+          );
+      } finally {
+          setSubmittingRating(false);
       }
     };
 
@@ -316,7 +354,7 @@ const CourseDetail = () => {
             <View style={styles.courseBackSection}>
               <View style={styles.courseBackContainer}>
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('/student/my-courses')}
+                  onPress={() => navigation.navigate('MyCourses')}
                   style={styles.courseBackLink}
                 >
                   <Bootstrap name="arrow-left" size={16} color="#3b82f6" />
@@ -363,7 +401,7 @@ const CourseDetail = () => {
                           </TouchableOpacity>
                         ) : (
                           <TouchableOpacity
-                            onPress={() => navigation.navigate('/student/subscriptions')}
+                            onPress={() => navigation.navigate('StudentSubscriptions')}
                             style={[styles.courseBtn, styles.courseBtnUpgrade]}
                           >
                             <Bootstrap name="star-fill" size={16} color="#fff" />
@@ -374,7 +412,7 @@ const CourseDetail = () => {
 
                       {enrolledStatus === 'success' && userLoginStatus === 'success' && (
                         <TouchableOpacity
-                          onPress={() => navigation.navigate('/student/learn', { course_id })}
+                          onPress={() => navigation.navigate('StudentCoursePlayer', { course_id })}
                           style={[styles.courseBtn, styles.courseBtnLearn]}
                         >
                           <Bootstrap name="play-fill" size={16} color="#fff" />
@@ -384,7 +422,7 @@ const CourseDetail = () => {
 
                       {userLoginStatus !== 'success' && (
                         <TouchableOpacity
-                          onPress={() => navigation.navigate('/student/login')}
+                          onPress={navigateToStudentLogin}
                           style={[styles.courseBtn, styles.courseBtnLogin]}
                         >
                           <Text style={styles.courseBtnText}>Login to Enroll</Text>
@@ -418,7 +456,7 @@ const CourseDetail = () => {
                     <View style={styles.courseMetaGrid}>
                       <View style={styles.courseMetaItem}>
                         <Text style={styles.courseMetaLabel}>Instructor</Text>
-                        <TouchableOpacity onPress={() => navigation.navigate(`/teacher-detail/${teacherData.id}`)}>
+                        <TouchableOpacity onPress={() => navigation.navigate('TeacherDetail', { teacher_id: teacherData.id })}>
                           <Text style={styles.courseMetaValue}>{teacherData.full_name}</Text>
                         </TouchableOpacity>
                       </View>
@@ -442,7 +480,9 @@ const CourseDetail = () => {
 
                     <View style={styles.courseStats}>
                       <View style={[styles.courseStatBox, styles.courseStatRating]}>
-                        <Text style={[styles.courseStatValue, styles.courseStatValueRating]}>{avgRating > 0 ? `${Number(avgRating).toFixed(1)} / 5` : 'New'}</Text>
+                        <Text style={[styles.courseStatValue, styles.courseStatValueRating]}>
+                          {avgRating > 0 ? `${Number(avgRating).toFixed(1)} / 5` : 'Not rated yet'}
+                        </Text>
                         <Text style={[styles.courseStatLabel, styles.courseStatLabelRating]}>Rating</Text>
                       </View>
 
@@ -534,8 +574,14 @@ const CourseDetail = () => {
                                   <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowRatingModal(false)}>
                                     <Text style={styles.cancelBtnText}>Cancel</Text>
                                   </TouchableOpacity>
-                                  <TouchableOpacity style={styles.submitBtn} onPress={formSubmit}>
-                                    <Text style={styles.submitBtnText}>Submit Rating</Text>
+                                  <TouchableOpacity
+                                    style={[styles.submitBtn, submittingRating && styles.submitBtnDisabled]}
+                                    onPress={formSubmit}
+                                    disabled={submittingRating}
+                                  >
+                                    <Text style={styles.submitBtnText}>
+                                      {submittingRating ? 'Submitting...' : 'Submit Rating'}
+                                    </Text>
                                   </TouchableOpacity>
                                 </View>
                               </View>
@@ -575,7 +621,7 @@ const CourseDetail = () => {
                       <View style={styles.courseInfoItemLast}>
                         <Text style={styles.courseInfoLabel}>Average Rating</Text>
                         <View style={styles.courseRatingDisplay}>
-                          <Text style={styles.courseRatingValue}>{avgRating > 0 ? Number(avgRating).toFixed(1) : 'New'}</Text>
+                          <Text style={styles.courseRatingValue}>{avgRating > 0 ? Number(avgRating).toFixed(1) : 'Not rated yet'}</Text>
                           <Text style={styles.courseRatingStars}>{avgRating > 0 ? '⭐'.repeat(Math.round(avgRating)) : ''}</Text>
                         </View>
                       </View>
@@ -592,7 +638,7 @@ const CourseDetail = () => {
                 <View style={styles.courseRelatedGrid}>
                   {relatedCourseData.slice(0, 4).map((rcourse, index) => (
                     <TouchableOpacity
-                      onPress={() => navigation.navigate('/detail', { course_id: rcourse.pk })}
+                      onPress={() => openCourseDetail(rcourse.pk || rcourse.id)}
                       key={index}
                       style={styles.courseRelatedCard}
                     >
@@ -680,8 +726,8 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   courseBackContainer: {
-    paddingTop: 20,
-    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingHorizontal: 16,
     paddingBottom: 8,
   },
   courseBackLink: {
@@ -704,7 +750,7 @@ const styles = StyleSheet.create({
   },
   courseHeroSection: {
     paddingVertical: 20,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 32,
   },
   courseHeroContainer: {},
@@ -893,7 +939,7 @@ const styles = StyleSheet.create({
   },
   courseContentSection: {
     marginTop: 8,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
   },
   courseContentRow: {
     gap: 24,
@@ -1078,6 +1124,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
   },
+  submitBtnDisabled: {
+    opacity: 0.7,
+  },
   submitBtnText: {
     color: '#ffffff',
     fontWeight: '600',
@@ -1139,7 +1188,7 @@ const styles = StyleSheet.create({
   },
   courseRelatedSection: {
     marginTop: 48,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
   },
   courseRelatedTitle: {
     fontSize: 28,

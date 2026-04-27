@@ -228,6 +228,7 @@ const TeacherCommunity = () => {
           scrollEventThrottle={16}
           style={styles.chatArea}
           contentContainerStyle={[styles.chatContent, isMobile ? styles.chatContentMobile : null]}
+          showsVerticalScrollIndicator={false}
         >
           {loading ? (
             <View style={styles.centerBox}>

@@ -18,6 +18,19 @@ const baseUrl = API_BASE_URL;
 
 const MyTeachers = () => {
     const navigation = useNavigation();
+    const navigateToStudentLogin = () => {
+        const parentNav = navigation.getParent();
+        if (parentNav) {
+            parentNav.navigate('Auth', { screen: 'StudentLogin' });
+            return;
+        }
+        navigation.navigate('StudentLogin');
+    };
+
+    const openTeacherDetail = (teacherId) => {
+        if (!teacherId) return;
+        navigation.navigate('TeacherDetail', { teacher_id: teacherId });
+    };
     const [studentId, setStudentId] = useState(null);
     const [studentLoginStatus, setStudentLoginStatus] = useState(null);
     const [teacherData, setTeacherData] = useState([]);
@@ -42,7 +55,7 @@ const MyTeachers = () => {
     useEffect(() => {
         if (studentLoginStatus === null) return;
         if (studentLoginStatus !== 'true') {
-            navigation.navigate('/student/login');
+            navigateToStudentLogin();
         }
     }, [studentLoginStatus]);
 
@@ -100,7 +113,7 @@ const MyTeachers = () => {
                             <Text style={styles.emptyText}>Enroll in courses to connect with teachers</Text>
                             <TouchableOpacity
                                 style={styles.browseBtn}
-                                onPress={() => navigation.navigate('/all-courses')}
+                                onPress={() => navigation.navigate('AllCourses')}
                             >
                                 <Text style={styles.browseBtnText}>Browse Courses</Text>
                             </TouchableOpacity>
@@ -114,7 +127,7 @@ const MyTeachers = () => {
                                 return (
                                     <View key={index} style={styles.teacherCard}>
                                         <TouchableOpacity
-                                            onPress={() => navigation.navigate(`/teacher-detail/${teacher.id}`)}
+                                            onPress={() => openTeacherDetail(teacher.id)}
                                             style={styles.avatarTouch}
                                         >
                                             <View style={styles.avatarWrap}>
@@ -128,7 +141,7 @@ const MyTeachers = () => {
                                             </View>
                                         </TouchableOpacity>
 
-                                        <TouchableOpacity onPress={() => navigation.navigate(`/teacher-detail/${teacher.id}`)}>
+                                        <TouchableOpacity onPress={() => openTeacherDetail(teacher.id)}>
                                             <Text style={styles.teacherName}>{teacherName}</Text>
                                         </TouchableOpacity>
 
@@ -144,7 +157,7 @@ const MyTeachers = () => {
 
                                         <TouchableOpacity
                                             style={styles.profileBtn}
-                                            onPress={() => navigation.navigate(`/teacher-detail/${teacher.id}`)}
+                                            onPress={() => openTeacherDetail(teacher.id)}
                                         >
                                             <Bootstrap name="person" size={13} color="#ffffff" />
                                             <Text style={styles.profileBtnText}>View Profile</Text>

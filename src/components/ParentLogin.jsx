@@ -8,10 +8,12 @@ import {
   ScrollView,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Platform,
   useWindowDimensions,
 } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useNavigation, useRoute } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../context/AuthContext'
 import { API_BASE, ENDPOINTS } from '../api/endpoints'
 import Header from './Header'
@@ -26,6 +28,7 @@ const ParentLogin = () => {
   const route = useRoute()
   const { setRole } = useAuth()
   const { width } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
   const [email, setEmail] = useState(route.params?.email || '')
   const [verificationCode, setVerificationCode] = useState('')
   const [step, setStep] = useState('email')
@@ -137,10 +140,20 @@ const ParentLogin = () => {
     <View style={styles.screen}>
       <Header />
 
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 72 : 0}
+      >
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, !isTablet && styles.scrollContentMobile]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            !isTablet && styles.scrollContentMobile,
+            { paddingBottom: 28 + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {/* Logo Area */}
           <View style={styles.logoArea}>

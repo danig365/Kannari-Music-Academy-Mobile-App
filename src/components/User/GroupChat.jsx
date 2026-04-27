@@ -20,6 +20,14 @@ const POLL_INTERVAL = 5000;
 
 const GroupChat = ({ groupId, studentId }) => {
   const navigation = useNavigation();
+  const navigateToParentLogin = () => {
+    const parentNav = navigation.getParent();
+    if (parentNav) {
+      parentNav.navigate('Auth', { screen: 'ParentLogin' });
+      return;
+    }
+    navigation.navigate('ParentLogin');
+  };
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState('');
   const [sending, setSending] = useState(false);
@@ -238,7 +246,7 @@ const GroupChat = ({ groupId, studentId }) => {
           <Text style={styles.minorBlockedText}>
             Group chat sending is locked — parent approval required.
           </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('/parent/login')}>
+          <TouchableOpacity onPress={navigateToParentLogin}>
             <Text style={styles.parentPortalLink}>Parent Portal</Text>
           </TouchableOpacity>
         </View>

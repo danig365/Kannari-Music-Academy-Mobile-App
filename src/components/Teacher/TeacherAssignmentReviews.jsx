@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, ActivityIndicator, Linking } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, ActivityIndicator, Linking, KeyboardAvoidingView, Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Audio, Video } from 'expo-av'
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const baseUrl = API_BASE_URL;
 
@@ -36,7 +37,9 @@ const TeacherAssignmentReviews = () => {
   const [filter, setFilter] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
   const [playingId, setPlayingId] = useState(null)
+  const scrollRef = useRef(null)
   const soundRef = useRef(null)
+  const insets = useSafeAreaInsets()
 
   useEffect(() => {
     const getTeacherId = async () => {
@@ -216,8 +219,28 @@ const TeacherAssignmentReviews = () => {
     );
   };
 
+  const handleGradeFieldFocus = (submissionId) => {
+    if (expandedId !== submissionId) {
+      setExpandedId(submissionId);
+    }
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.keyboardWrap}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}
+    >
+    <ScrollView
+      ref={scrollRef}
+      contentContainerStyle={[styles.container, { paddingBottom: 16 + Math.max(insets.bottom, 8) }]}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps='handled'
+      keyboardDismissMode='on-drag'
+    >
       <View style={styles.headerWrap}>
         <Text style={styles.title}>📝 Assignment Reviews</Text>
         <Text style={styles.subtitle}>Review all submission types, grade with points and feedback.</Text>
@@ -325,6 +348,7 @@ const TeacherAssignmentReviews = () => {
                         placeholder={`Points / ${maxPoints}`}
                         value={String(initialPoints)}
                         onChangeText={(text) => updateGradeInput(submission.id, 'points_awarded', text)}
+                        onFocus={() => handleGradeFieldFocus(submission.id)}
                       />
 
                       <TextInput
@@ -333,6 +357,7 @@ const TeacherAssignmentReviews = () => {
                         value={initialFeedback}
                         onChangeText={(text) => updateGradeInput(submission.id, 'teacher_feedback', text)}
                         multiline={true}
+                        onFocus={() => handleGradeFieldFocus(submission.id)}
                       />
 
                       <TouchableOpacity
@@ -351,11 +376,18 @@ const TeacherAssignmentReviews = () => {
         </View>
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  keyboardWrap: {
+    flex: 1,
+  },
   container: {
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
     padding: 16,
   },
   headerWrap: {

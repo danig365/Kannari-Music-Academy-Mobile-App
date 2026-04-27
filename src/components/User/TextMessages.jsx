@@ -15,8 +15,9 @@ import {
   Platform,
   Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bootstrap } from '../shared/BootstrapIcon';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL, SITE_URL } from '../../config';
 import {
   getDirectConversation,
   sendMessage,
@@ -28,6 +29,7 @@ const baseUrl = API_BASE_URL;
 const POLL_INTERVAL = 5000;
 
 const TextMessages = () => {
+  const insets = useSafeAreaInsets();
   const [studentId, setStudentId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [activeConv, setActiveConv] = useState(null);
@@ -38,6 +40,7 @@ const TextMessages = () => {
   const [sending, setSending] = useState(false);
   const [isMobile, setIsMobile] = useState(Dimensions.get('window').width < 768);
   const [accessError, setAccessError] = useState(null);
+  const composerBottomInset = Math.max(insets.bottom, 12);
 
   const pollRef = useRef(null);
   const messageScrollRef = useRef(null);
@@ -190,8 +193,13 @@ const TextMessages = () => {
   };
 
   const renderTeacherAvatar = (conv, size = 42) => {
-    if (conv?.teacher_profile_img) {
-      return <Image source={{ uri: conv.teacher_profile_img }} style={[styles.avatarImage, { width: size, height: size, borderRadius: size / 2 }]} />;
+    const imgRaw = conv?.teacher_profile_img || conv?.teacher_profile_image || conv?.profile_img || conv?.profile_image || null;
+    const imgUri = imgRaw
+      ? (imgRaw.startsWith('http') ? imgRaw : `${SITE_URL}${imgRaw.startsWith('/') ? '' : '/'}${imgRaw}`)
+      : null;
+
+    if (imgUri) {
+      return <Image source={{ uri: imgUri }} style={[styles.avatarImage, { width: size, height: size, borderRadius: size / 2 }]} />;
     }
 
     return (
@@ -213,7 +221,7 @@ const TextMessages = () => {
         ) : (
           <View style={styles.mainPanels}>
             {(!isMobile || !activeConv) && (
-              <View style={styles.leftPanel}>
+              <View style={[styles.leftPanel, isMobile ? styles.leftPanelMobile : null]}>
                 <View style={styles.leftPanelHeader}>
                   <View style={styles.leftPanelTitleRow}>
                     <Bootstrap name="chat-dots" size={18} color="#1e293b" />
@@ -298,8 +306,9 @@ const TextMessages = () => {
                     <ScrollView
                       ref={messageScrollRef}
                       style={styles.messagesScroll}
-                      contentContainerStyle={styles.messagesContent}
+                      contentContainerStyle={[styles.messagesContent, { paddingBottom: composerBottomInset }]}
                       onContentSizeChange={() => scrollToBottom(false)}
+                      keyboardShouldPersistTaps="handled"
                     >
                       {messages.length === 0 ? (
                         <View style={styles.noMessagesWrap}>
@@ -335,12 +344,12 @@ const TextMessages = () => {
                     </ScrollView>
 
                     {!chatStatus.allowed ? (
-                      <View style={styles.lockedBar}>
+                      <View style={[styles.lockedBar, { paddingBottom: composerBottomInset }]}>
                         <Bootstrap name="lock" size={14} color="#ef4444" />
                         <Text style={styles.lockedBarText}>{chatStatus.reason}</Text>
                       </View>
                     ) : (
-                      <View style={styles.inputBar}>
+                      <View style={[styles.inputBar, { paddingBottom: composerBottomInset }]}>
                         <TextInput
                           value={newMessage}
                           onChangeText={setNewMessage}
@@ -438,10 +447,14 @@ const styles = StyleSheet.create({
   },
   leftPanel: {
     width: 300,
-    maxWidth: '100%',
     borderRightWidth: 1,
     borderRightColor: '#e2e8f0',
     backgroundColor: '#ffffff',
+  },
+  leftPanelMobile: {
+    flex: 1,
+    width: '100%',
+    borderRightWidth: 0,
   },
   leftPanelHeader: {
     paddingHorizontal: 16,
@@ -466,6 +479,8 @@ const styles = StyleSheet.create({
   },
   listScroll: {
     flex: 1,
+    paddingTop: 6,
+    paddingBottom: 8,
   },
   loadingWrap: {
     padding: 30,
@@ -492,13 +507,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   conversationItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    marginHorizontal: 10,
+    marginVertical: 4,
+    borderRadius: 12,
     backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
   conversationItemActive: {
     backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
   },
   conversationRow: {
     flexDirection: 'row',
@@ -521,7 +541,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   teacherName: {
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1e293b',
     fontSize: 14,
   },
@@ -531,9 +551,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   unreadBadge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#6366f1',
     alignItems: 'center',
     justifyContent: 'center',
@@ -666,7 +686,7 @@ const styles = StyleSheet.create({
   },
   lockedBar: {
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
     backgroundColor: '#fef2f2',
@@ -684,7 +704,7 @@ const styles = StyleSheet.create({
   },
   inputBar: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
     backgroundColor: '#ffffff',

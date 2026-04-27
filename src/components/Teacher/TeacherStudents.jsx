@@ -326,7 +326,7 @@ const TeacherStudents = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.pageTitle}>My Students</Text>
@@ -483,6 +483,9 @@ const TeacherStudents = () => {
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
     padding: 16,
     backgroundColor: '#f8fafc',
     gap: 16,

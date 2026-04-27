@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, ActivityIndicator, useWindowDimensions } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity, Image, FlatList, ScrollView, StyleSheet, Alert, ActivityIndicator, useWindowDimensions, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { API_BASE_URL } from '../../config';
 import { getConversation, getDirectConversation, sendMessage, markMessagesRead, markDirectMessagesRead, getChatLockStatus } from '../../services/messagingService';
 
@@ -20,11 +21,35 @@ const TeacherMessages = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const chatScrollRef = useRef(null);
   const pollRef = useRef(null);
   const conversationIdRef = useRef(null);
   const { width } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
   const isMobile = width < 768
+  const baseComposerInset = isMobile ? Math.max(insets.bottom, 12) : 10
+  const composerBottomInset = baseComposerInset + (Platform.OS === 'android' ? keyboardHeight : 0)
+  const messagesBottomInset = baseComposerInset + 58
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = Keyboard.addListener(showEvent, (event) => {
+      const height = event?.endCoordinates?.height || 0;
+      setKeyboardHeight(Math.max(height - insets.bottom, 0));
+    });
+
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, [insets.bottom]);
 
   useEffect(() => {
     const getTeacherId = async () => {
@@ -200,7 +225,12 @@ const TeacherMessages = () => {
   const conversationReady = isDirectChat ? !!teacherStudentId : !!parentLinkId;
 
   return (
-    <View style={styles.root}>
+    <KeyboardAvoidingView
+      style={styles.keyboardWrap}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}
+    >
+      <View style={styles.root}>
       {(!isMobile || !activeStudent) && (
         <View style={[styles.listPanel, isMobile ? styles.listPanelMobile : null]}>
           <View style={styles.listHeader}>
@@ -208,7 +238,7 @@ const TeacherMessages = () => {
             <Text style={styles.listSubtitle}>Chat with parents & adult students</Text>
           </View>
 
-          <ScrollView>
+          <ScrollView contentContainerStyle={{ paddingTop: 6, paddingBottom: 8 }}>
             {loading ? (
               <View style={styles.centerBox}><Text style={styles.mutedText}>Loading students...</Text></View>
             ) : students.length === 0 ? (
@@ -268,7 +298,12 @@ const TeacherMessages = () => {
                 )}
               </View>
 
-              <ScrollView ref={chatScrollRef} contentContainerStyle={styles.messagesWrap}>
+              <ScrollView
+                ref={chatScrollRef}
+                contentContainerStyle={[styles.messagesWrap, { paddingBottom: messagesBottomInset }]}
+                keyboardShouldPersistTaps='handled'
+                onContentSizeChange={scrollToBottom}
+              >
                 {messages.length === 0 ? (
                   <View style={styles.centerBox}>
                     <Text style={styles.lightText}>{conversationReady ? 'No messages yet — start the conversation!' : 'Messaging unavailable'}</Text>
@@ -290,7 +325,7 @@ const TeacherMessages = () => {
               </ScrollView>
 
               {chatStatus.allowed && conversationReady ? (
-                <View style={styles.inputRow}>
+                <View style={[styles.inputRow, { paddingBottom: composerBottomInset }]}>
                   <TextInput
                     value={newMessage}
                     onChangeText={setNewMessage}
@@ -303,7 +338,7 @@ const TeacherMessages = () => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={styles.unavailableBox}>
+                <View style={[styles.unavailableBox, { paddingBottom: composerBottomInset }]}>
                   <Text style={styles.unavailableText}>{chatStatus.reason || 'Messaging unavailable'}</Text>
                 </View>
               )}
@@ -311,15 +346,20 @@ const TeacherMessages = () => {
           )}
         </View>
       )}
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  keyboardWrap: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
   root: {
     flex: 1,
     flexDirection: 'row',
-    overflow: 'hidden',
+    backgroundColor: '#f8fafc',
   },
   listPanel: {
     width: 280,
@@ -331,7 +371,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   listHeader: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
@@ -358,49 +399,56 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   studentItem: {
+    marginHorizontal: 10,
+    marginVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    paddingHorizontal: 14,
   },
   studentItemActive: {
     backgroundColor: '#eff6ff',
+    borderColor: '#bfdbfe',
   },
   studentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   studentAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   studentAvatarFallback: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     backgroundColor: '#6366f1',
-    borderRadius: 18,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   studentAvatarFallbackText: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 12,
+    fontWeight: '700',
+    fontSize: 14,
   },
   studentName: {
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1e293b',
-    fontSize: 13,
+    fontSize: 14,
   },
   studentMeta: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#64748b',
+    marginTop: 2,
   },
   chatPanel: {
     flex: 1,
     backgroundColor: '#f8fafc',
+    minHeight: 0,
   },
   placeholderWrap: {
     flex: 1,
@@ -541,7 +589,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   inputRow: {
-    paddingVertical: 10,
+    paddingTop: 10,
     paddingHorizontal: 16,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
@@ -578,7 +626,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   unavailableBox: {
-    paddingVertical: 12,
+    paddingTop: 12,
     paddingHorizontal: 16,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',

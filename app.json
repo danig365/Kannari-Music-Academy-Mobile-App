@@ -44,7 +44,13 @@
           "merchantIdentifier": "merchant.com.kannarimusicacademy",
           "enableGooglePay": true
         }
-      ]
-    ]
+      ],
+      "expo-video"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "578276bc-781e-477a-ac69-78d7dd3a11ba"
+      }
+    }
   }
 }

@@ -176,7 +176,7 @@ const TeacherProgress = () => {
 
   if (!progressData || progressData.total_students === 0) {
     return (
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.headerBlock}>
           <Text style={styles.pageTitle}>Progress Analytics</Text>
           <Text style={styles.pageSubtitle}>Monitor student performance and track learning outcomes.</Text>
@@ -195,7 +195,7 @@ const TeacherProgress = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <View style={styles.flexOne}>
           <Text style={styles.pageTitle}>Progress Analytics</Text>
@@ -438,6 +438,9 @@ const TeacherProgress = () => {
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
     padding: 16,
     backgroundColor: '#f8fafc',
     gap: 16,

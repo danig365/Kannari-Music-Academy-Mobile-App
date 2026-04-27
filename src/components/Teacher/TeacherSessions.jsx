@@ -208,7 +208,7 @@ const TeacherSessions = () => {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Sessions</Text>

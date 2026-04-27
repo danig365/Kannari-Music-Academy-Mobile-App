@@ -11,6 +11,14 @@ const baseUrl = API_BASE_URL;
 
 const StudentGroups = () => {
   const navigation = useNavigation();
+  const navigateToStudentLogin = () => {
+    const parentNav = navigation.getParent();
+    if (parentNav) {
+      parentNav.navigate('Auth', { screen: 'StudentLogin' });
+      return;
+    }
+    navigation.navigate('StudentLogin');
+  };
   const [studentId, setStudentId] = useState(null);
   const [studentLoginStatus, setStudentLoginStatus] = useState(null);
   const [groups, setGroups] = useState([]);
@@ -36,7 +44,7 @@ const StudentGroups = () => {
   useEffect(() => {
     if (studentLoginStatus === null) return;
     if (studentLoginStatus !== 'true') {
-      navigation.navigate('/student/login');
+      navigateToStudentLogin();
     }
   }, [studentLoginStatus]);
 

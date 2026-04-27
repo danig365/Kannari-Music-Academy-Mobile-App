@@ -11,6 +11,9 @@ const baseUrl = API_BASE_URL;
 
 const AchievementBadges = ({ studentId, compact = false }) => {
     const navigation = useNavigation();
+    const openMyAchievements = () => {
+        navigation.navigate('MyAchievements');
+    };
     const [achievementData, setAchievementData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedAchievement, setSelectedAchievement] = useState(null);
@@ -112,7 +115,7 @@ const AchievementBadges = ({ studentId, compact = false }) => {
                     )}
 
                     {earnedAchievements.length > 5 && (
-                        <TouchableOpacity style={styles.moreBadges} onPress={() => navigation.navigate('/student/my-achievements')}>
+                        <TouchableOpacity style={styles.moreBadges} onPress={openMyAchievements}>
                             <Text style={styles.moreBadgesText}>+{earnedAchievements.length - 5}</Text>
                         </TouchableOpacity>
                     )}
@@ -133,7 +136,7 @@ const AchievementBadges = ({ studentId, compact = false }) => {
                     </View>
                 </View>
 
-                <TouchableOpacity style={styles.viewAllBtn} onPress={() => navigation.navigate('/student/my-achievements')}>
+                <TouchableOpacity style={styles.viewAllBtn} onPress={openMyAchievements}>
                     <Text style={styles.viewAllBtnText}>View All Achievements</Text>
                     <Bootstrap name="arrow-right" size={14} color="#374151" />
                 </TouchableOpacity>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     Alert,
+    Image,
     Modal,
     ScrollView,
     StyleSheet,
@@ -9,14 +10,24 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    useWindowDimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as DocumentPicker from 'expo-document-picker';
 import axios from 'axios';
 import LoadingSpinner from '../shared/LoadingSpinner';
-import { API_BASE_URL } from '../../config';
+import { API_BASE_URL, SITE_URL } from '../../config';
 
 const baseUrl = API_BASE_URL;
+const siteUrl = String(SITE_URL || '').replace(/\/$/, '');
+
+const getCourseImageUrl = (image) => {
+    if (!image) return '';
+    if (typeof image !== 'string') return '';
+    if (image.startsWith('http')) return image;
+    const normalizedPath = image.replace(/^\/+/, '');
+    return `${siteUrl}/${normalizedPath}`;
+};
 
 const accessLevels = ['free', 'basic', 'standard', 'premium', 'unlimited'];
 
@@ -119,6 +130,8 @@ const AdminLessonManagement = ({
     showTeacherSelect = true,
     showAnalytics = true,
 }) => {
+    const { width } = useWindowDimensions();
+    const isCompactScreen = width < 768;
     const [effectiveTeacherId, setEffectiveTeacherId] = useState(teacherId);
 
     const [loading, setLoading] = useState(true);
@@ -161,6 +174,33 @@ const AdminLessonManagement = ({
     const [downloadableFormData, setDownloadableFormData] = useState(emptyDownloadableForm);
     const [savingDownloadable, setSavingDownloadable] = useState(false);
 
+    const getTeacherFromCourse = (course) => {
+        return (
+            course?.teacher?.id ??
+            course?.teacher_id ??
+            course?.teacher ??
+            course?.instructor?.id ??
+            course?.instructor_id ??
+            course?.instructor ??
+            null
+        );
+    };
+
+    const canManageCourse = (course) => {
+        if (userType !== 'teacher') return true;
+        if (!effectiveTeacherId) return false;
+        const ownerId = getTeacherFromCourse(course);
+        return String(ownerId) === String(effectiveTeacherId);
+    };
+
+    const ensureTeacherCanManageCourse = (course, actionLabel = 'manage this course') => {
+        if (userType !== 'teacher') return true;
+        if (canManageCourse(course)) return true;
+
+        Alert.alert('Access denied', `You can only ${actionLabel} for your own courses.`);
+        return false;
+    };
+
     useEffect(() => {
         const init = async () => {
             if (!teacherId && userType === 'teacher') {
@@ -172,6 +212,12 @@ const AdminLessonManagement = ({
     }, [teacherId, userType]);
 
     useEffect(() => {
+        if (userType === 'teacher' && !effectiveTeacherId) {
+            setCourses([]);
+            setLoading(false);
+            return;
+        }
+
         fetchCourses();
         fetchCategories();
         if (showTeacherSelect) fetchTeachers();
@@ -187,7 +233,14 @@ const AdminLessonManagement = ({
                 response = await axios.get(`${baseUrl}/course/`);
             }
             const list = response.data?.results || response.data || [];
-            setCourses(Array.isArray(list) ? list : []);
+            const normalized = Array.isArray(list) ? list : [];
+
+            if (userType === 'teacher') {
+                const ownCourses = normalized.filter((course) => canManageCourse(course));
+                setCourses(ownCourses);
+            } else {
+                setCourses(normalized);
+            }
         } catch (error) {
             setCourses([]);
             Alert.alert('Error', 'Failed to fetch courses.');
@@ -258,6 +311,10 @@ const AdminLessonManagement = ({
     };
 
     const handleCourseSelect = (course) => {
+        if (!ensureTeacherCanManageCourse(course, 'view modules')) {
+            return;
+        }
+
         setSelectedCourse(course);
         fetchCourseStructure(course.id);
     };
@@ -268,6 +325,10 @@ const AdminLessonManagement = ({
 
     const filteredCourses = useMemo(() => {
         return courses.filter((course) => {
+            if (userType === 'teacher' && !canManageCourse(course)) {
+                return false;
+            }
+
             const title = (course.title || '').toLowerCase();
             const search = searchTerm.toLowerCase();
             const categoryTitle =
@@ -278,7 +339,7 @@ const AdminLessonManagement = ({
             const matchesCategory = !selectedCategory || String(course.category) === selectedCategory || categoryTitle === selectedCategory;
             return matchesSearch && matchesCategory;
         });
-    }, [courses, searchTerm, selectedCategory]);
+    }, [courses, searchTerm, selectedCategory, userType, effectiveTeacherId]);
 
     const openAddCourseModal = () => {
         setEditingCourse(null);
@@ -290,6 +351,10 @@ const AdminLessonManagement = ({
     };
 
     const openEditCourseModal = (course) => {
+        if (!ensureTeacherCanManageCourse(course, 'edit')) {
+            return;
+        }
+
         setEditingCourse(course);
         setCourseFormData({
             title: course.title || '',
@@ -404,6 +469,11 @@ const AdminLessonManagement = ({
     };
 
     const handleDeleteCourse = (courseId) => {
+        const targetCourse = courses.find((course) => String(course.id) === String(courseId));
+        if (!ensureTeacherCanManageCourse(targetCourse, 'delete')) {
+            return;
+        }
+
         Alert.alert('Delete Course', 'Are you sure you want to delete this course?', [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -790,12 +860,19 @@ const AdminLessonManagement = ({
                 {filteredCourses.length ? (
                     filteredCourses.map((course) => {
                         const isSelected = selectedCourse?.id === course.id;
+                        const canManage = canManageCourse(course);
                         return (
                             <TouchableOpacity
                                 key={course.id}
                                 style={[styles.courseCard, isSelected && styles.selectedCard]}
                                 onPress={() => handleCourseSelect(course)}
                             >
+                                {course.featured_img ? (
+                                    <Image
+                                        source={{ uri: getCourseImageUrl(course.featured_img) }}
+                                        style={styles.courseThumbnail}
+                                    />
+                                ) : null}
                                 <Text style={styles.courseTitle}>{course.title}</Text>
                                 <Text style={styles.courseMeta} numberOfLines={2}>
                                     {course.description || 'No description'}
@@ -803,14 +880,16 @@ const AdminLessonManagement = ({
                                 <Text style={styles.courseMeta}>
                                     Category: {course.category?.title || course.category || 'N/A'}
                                 </Text>
-                                <View style={styles.rowActionWrap}>
-                                    <ActionButton label="Edit" tone="info" onPress={() => openEditCourseModal(course)} />
-                                    <ActionButton
-                                        label="Delete"
-                                        tone="danger"
-                                        onPress={() => handleDeleteCourse(course.id)}
-                                    />
-                                </View>
+                                {canManage ? (
+                                    <View style={styles.rowActionWrap}>
+                                        <ActionButton label="Edit" tone="info" onPress={() => openEditCourseModal(course)} />
+                                        <ActionButton
+                                            label="Delete"
+                                            tone="danger"
+                                            onPress={() => handleDeleteCourse(course.id)}
+                                        />
+                                    </View>
+                                ) : null}
                             </TouchableOpacity>
                         );
                     })
@@ -821,8 +900,10 @@ const AdminLessonManagement = ({
                 {selectedCourse && (
                     <>
                         <View style={styles.sectionHeaderRow}>
-                            <Text style={styles.sectionTitle}>Modules in {selectedCourse.title}</Text>
-                            <TouchableOpacity style={styles.successButton} onPress={openAddModuleModal}>
+                            <Text style={styles.sectionHeaderTitle} numberOfLines={2}>
+                                Modules in {selectedCourse.title}
+                            </Text>
+                            <TouchableOpacity style={styles.sectionHeaderAction} onPress={openAddModuleModal}>
                                 <Text style={styles.buttonText}>+ Module</Text>
                             </TouchableOpacity>
                         </View>
@@ -933,6 +1014,7 @@ const AdminLessonManagement = ({
                 visible={showCourseModal}
                 onClose={closeCourseModal}
                 editingCourse={editingCourse}
+                isCompactScreen={isCompactScreen}
                 courseFormData={courseFormData}
                 setCourseFormData={setCourseFormData}
                 categories={categories}
@@ -1209,12 +1291,12 @@ const CategoryChip = ({ title, active, onPress }) => (
 const ActionButton = ({ label, tone = 'info', onPress }) => {
     const toneStyle =
         tone === 'danger'
-            ? styles.dangerButton
+            ? styles.actionBtnDanger
             : tone === 'success'
-            ? styles.successButton
+            ? styles.actionBtnSuccess
             : tone === 'warning'
-            ? styles.warningButton
-            : styles.infoButton;
+            ? styles.actionBtnWarning
+            : styles.actionBtnInfo;
 
     return (
         <TouchableOpacity style={[styles.smallBtn, toneStyle]} onPress={onPress}>
@@ -1224,7 +1306,7 @@ const ActionButton = ({ label, tone = 'info', onPress }) => {
 };
 
 const Field = ({ label, value, onChangeText, placeholder, multiline = false, keyboardType = 'default' }) => (
-    <View style={{ marginBottom: 10 }}>
+    <View style={styles.formFieldWrap}>
         {!!label && <Text style={styles.fieldLabel}>{label}</Text>}
         <TextInput
             style={[styles.input, multiline && styles.multilineInput]}
@@ -1237,11 +1319,11 @@ const Field = ({ label, value, onChangeText, placeholder, multiline = false, key
     </View>
 );
 
-const HorizontalOptions = ({ label, value, options, onSelect }) => (
-    <View style={{ marginBottom: 10 }}>
+const HorizontalOptions = ({ label, value, options, onSelect, wrapOnCompact = false }) => (
+    <View style={styles.formFieldWrap}>
         <Text style={styles.fieldLabel}>{label}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.optionsRow}>
+        {wrapOnCompact ? (
+            <View style={styles.optionsWrapMobile}>
                 {options.map((option) => (
                     <TouchableOpacity
                         key={option}
@@ -1256,7 +1338,29 @@ const HorizontalOptions = ({ label, value, options, onSelect }) => (
                     </TouchableOpacity>
                 ))}
             </View>
-        </ScrollView>
+        ) : (
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.optionsScrollContent}
+            >
+                <View style={styles.optionsRow}>
+                    {options.map((option) => (
+                        <TouchableOpacity
+                            key={option}
+                            style={[styles.optionChip, value === option && styles.optionChipActive]}
+                            onPress={() => onSelect(option)}
+                        >
+                            <Text
+                                style={[styles.optionChipText, value === option && styles.optionChipTextActive]}
+                            >
+                                {option}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </ScrollView>
+        )}
     </View>
 );
 
@@ -1284,7 +1388,13 @@ const SimpleModal = ({ visible, title, onClose, children }) => (
                         <Text style={styles.closeText}>Close</Text>
                     </TouchableOpacity>
                 </View>
-                <ScrollView>{children}</ScrollView>
+                <ScrollView
+                    style={styles.modalBody}
+                    contentContainerStyle={styles.modalBodyContent}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {children}
+                </ScrollView>
             </View>
         </View>
     </Modal>
@@ -1294,6 +1404,7 @@ const CourseModal = ({
     visible,
     onClose,
     editingCourse,
+    isCompactScreen = false,
     courseFormData,
     setCourseFormData,
     categories,
@@ -1328,6 +1439,7 @@ const CourseModal = ({
             value={courseFormData.category}
             options={categories.map((category) => String(category.id))}
             onSelect={(value) => setCourseFormData((prev) => ({ ...prev, category: value }))}
+                    wrapOnCompact={isCompactScreen}
         />
         <Text style={styles.smallHelp}>
             Selected category:{' '}
@@ -1367,6 +1479,7 @@ const CourseModal = ({
                 value={courseFormData.teacher}
                 options={teachers.map((teacher) => String(teacher.id))}
                 onSelect={(value) => setCourseFormData((prev) => ({ ...prev, teacher: value }))}
+                wrapOnCompact={isCompactScreen}
             />
         )}
         {showTeacherSelect && userType === 'admin' && (
@@ -1378,7 +1491,7 @@ const CourseModal = ({
         )}
 
         <Field
-            label="Tech Stack"
+            label="Music Tools / Techniques Covered"
             value={courseFormData.techs}
             onChangeText={(value) => setCourseFormData((prev) => ({ ...prev, techs: value }))}
         />
@@ -1390,6 +1503,7 @@ const CourseModal = ({
             onSelect={(value) =>
                 setCourseFormData((prev) => ({ ...prev, required_access_level: value }))
             }
+            wrapOnCompact={isCompactScreen}
         />
 
         <TouchableOpacity style={styles.infoButton} onPress={onPickImage}>
@@ -1482,15 +1596,15 @@ const styles = StyleSheet.create({
     input: {
         borderWidth: 1,
         borderColor: '#d1d5db',
-        borderRadius: 8,
+        borderRadius: 12,
         backgroundColor: '#fff',
-        paddingVertical: 9,
-        paddingHorizontal: 10,
-        fontSize: 13,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        fontSize: 14,
         color: '#1f2937',
     },
     multilineInput: {
-        minHeight: 70,
+        minHeight: 112,
         textAlignVertical: 'top',
     },
     categoryRow: {
@@ -1528,6 +1642,13 @@ const styles = StyleSheet.create({
         padding: 12,
         marginBottom: 10,
     },
+    courseThumbnail: {
+        width: '100%',
+        height: 160,
+        borderRadius: 8,
+        marginBottom: 12,
+        backgroundColor: '#e5e7eb',
+    },
     selectedCard: {
         borderColor: '#4285f4',
         borderWidth: 2,
@@ -1551,9 +1672,26 @@ const styles = StyleSheet.create({
     sectionHeaderRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        flexWrap: 'wrap',
+        gap: 8,
         marginTop: 6,
         marginBottom: 8,
+    },
+    sectionHeaderTitle: {
+        flex: 1,
+        minWidth: 0,
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1a2332',
+        marginBottom: 0,
+    },
+    sectionHeaderAction: {
+        backgroundColor: '#16a34a',
+        borderRadius: 8,
+        paddingVertical: 7,
+        paddingHorizontal: 10,
+        marginLeft: 'auto',
     },
     analyticsText: {
         fontSize: 11,
@@ -1631,39 +1769,58 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     smallBtn: {
-        borderRadius: 6,
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 11,
-        fontWeight: '700',
-    },
-    primaryButton: {
-        backgroundColor: '#2563eb',
-        borderRadius: 8,
-        paddingVertical: 10,
+        minWidth: 84,
+        height: 40,
+        borderRadius: 10,
         paddingHorizontal: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
+    buttonText: {
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    actionBtnInfo: {
+        backgroundColor: '#0284c7',
+    },
+    actionBtnSuccess: {
+        backgroundColor: '#16a34a',
+    },
+    actionBtnWarning: {
+        backgroundColor: '#f59e0b',
+    },
+    actionBtnDanger: {
+        backgroundColor: '#dc2626',
+    },
+    primaryButton: {
+        backgroundColor: '#2563eb',
+        borderRadius: 12,
+        paddingVertical: 13,
+        paddingHorizontal: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 6,
+        marginBottom: 4,
+    },
     primaryButtonText: {
         color: '#fff',
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: '700',
     },
     successButton: {
         backgroundColor: '#16a34a',
-        borderRadius: 8,
-        paddingVertical: 7,
+        borderRadius: 10,
+        paddingVertical: 10,
         paddingHorizontal: 10,
     },
     infoButton: {
         backgroundColor: '#0284c7',
-        borderRadius: 8,
-        paddingVertical: 7,
+        borderRadius: 10,
+        paddingVertical: 11,
         paddingHorizontal: 10,
+        marginTop: 4,
+        marginBottom: 8,
     },
     warningButton: {
         backgroundColor: '#f59e0b',
@@ -1679,10 +1836,11 @@ const styles = StyleSheet.create({
     },
     secondaryButton: {
         backgroundColor: '#6b7280',
-        borderRadius: 8,
-        paddingVertical: 8,
+        borderRadius: 10,
+        paddingVertical: 10,
         paddingHorizontal: 10,
         marginTop: 8,
+        marginBottom: 10,
         alignItems: 'center',
     },
     disabledButton: {
@@ -1692,47 +1850,73 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.45)',
         justifyContent: 'center',
-        padding: 12,
+        paddingVertical: 16,
+        paddingHorizontal: 12,
     },
     modalCard: {
         maxHeight: '92%',
+        width: '100%',
+        maxWidth: 560,
+        alignSelf: 'center',
         backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 12,
+        borderRadius: 18,
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 10,
+    },
+    modalBody: {
+        flexGrow: 0,
+        width: '100%',
+    },
+    modalBodyContent: {
+        paddingBottom: 12,
     },
     modalHead: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
+        marginBottom: 14,
     },
     modalTitle: {
         flex: 1,
         paddingRight: 8,
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: '700',
         color: '#1f2937',
     },
     closeText: {
         color: '#2563eb',
         fontWeight: '700',
-        fontSize: 12,
+        fontSize: 14,
+    },
+    formFieldWrap: {
+        marginBottom: 14,
     },
     fieldLabel: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#374151',
         fontWeight: '600',
-        marginBottom: 4,
+        marginBottom: 8,
     },
     optionsRow: {
         flexDirection: 'row',
+        gap: 8,
+        paddingBottom: 2,
+        paddingRight: 6,
+    },
+    optionsScrollContent: {
+        paddingRight: 12,
+    },
+    optionsWrapMobile: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 8,
     },
     optionChip: {
         backgroundColor: '#e5e7eb',
         borderRadius: 999,
-        paddingVertical: 6,
-        paddingHorizontal: 10,
+        paddingVertical: 9,
+        paddingHorizontal: 14,
         marginRight: 8,
     },
     optionChipActive: {
@@ -1740,7 +1924,7 @@ const styles = StyleSheet.create({
     },
     optionChipText: {
         color: '#374151',
-        fontSize: 11,
+        fontSize: 13,
         textTransform: 'capitalize',
         fontWeight: '600',
     },
@@ -1765,18 +1949,20 @@ const styles = StyleSheet.create({
         color: '#1f2937',
     },
     formBox: {
-        marginTop: 8,
+        marginTop: 2,
         backgroundColor: '#f8fafc',
         borderWidth: 1,
         borderColor: '#e5e7eb',
-        borderRadius: 8,
-        padding: 10,
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 10,
     },
     smallHelp: {
-        marginTop: 4,
-        marginBottom: 6,
-        fontSize: 11,
+        marginTop: -2,
+        marginBottom: 10,
+        fontSize: 13,
         color: '#64748b',
+        lineHeight: 20,
     },
     downloadItem: {
         flexDirection: 'row',

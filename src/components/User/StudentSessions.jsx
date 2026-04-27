@@ -21,6 +21,19 @@ const StudentSessions = () => {
   const navigation = useNavigation();
   const baseUrl = API_BASE_URL;
 
+  const navigateToStudentLogin = () => {
+    const parentNav = navigation.getParent();
+    if (parentNav) {
+      parentNav.navigate('Auth', { screen: 'StudentLogin' });
+      return;
+    }
+    navigation.navigate('StudentLogin');
+  };
+
+  const navigateToSubscriptions = () => {
+    navigation.navigate('StudentSubscriptions');
+  };
+
   const [studentId, setStudentId] = useState(null);
   const [studentLoginStatus, setStudentLoginStatus] = useState(null);
   const [upcomingSessions, setUpcomingSessions] = useState([]);
@@ -48,7 +61,7 @@ const StudentSessions = () => {
   useEffect(() => {
     if (studentLoginStatus === null) return;
     if (studentLoginStatus !== 'true') {
-      navigation.navigate('/student/login');
+      navigateToStudentLogin();
     }
   }, [studentLoginStatus]);
 
@@ -118,7 +131,7 @@ const StudentSessions = () => {
         if (res.data.requires_upgrade) {
           Alert.alert('Upgrade Required', res.data.message, [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'View Plans', onPress: () => navigation.navigate('/student/subscriptions') },
+            { text: 'View Plans', onPress: navigateToSubscriptions },
           ]);
         } else {
           Alert.alert('Cannot Join', res.data.message || 'Cannot join this session right now.');
@@ -132,7 +145,7 @@ const StudentSessions = () => {
           data.message || 'Active subscription required for live sessions.',
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'View Plans', onPress: () => navigation.navigate('/student/subscriptions') },
+            { text: 'View Plans', onPress: navigateToSubscriptions },
           ]
         );
       } else if (data?.requires_parental_consent) {
